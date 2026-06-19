@@ -2,6 +2,11 @@ name: Build and Push Docker Image to Aliyun ACR
 
 on:
   workflow_dispatch:
+    inputs:
+      pr_num:
+        description: 'llama.cpp PR number to compile (e.g. 22836 for 1.25Bit, 19357 for 2Bit)'
+        required: true
+        default: '22836'
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -44,16 +49,16 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          # 编译 22836 版本（1.25Bit 支持）
+          # 使用手动输入的 PR 号进行编译
           build-args: |
-            PR_NUM=22836
+            PR_NUM=${{ github.event.inputs.pr_num }}
           # 显式指定构建多平台架构镜像，支持 AMD64 (x86_64) 和 ARM64 (Apple M系列/树莓派/ARM云服务器等)
           platforms: linux/amd64,linux/arm64
-          # 同时发布三个标签：具体分秒时间戳、日期和最新版（latest）
+          # 同时发布三个标签：具体分秒时间戳、日期和 PR 简称标签
           tags: |
-            ${{ secrets.ALIYUN_REGISTRY }}/${{ secrets.ALIYUN_NAMESPACE }}/${{ secrets.ALIYUN_REPOSITORY }}:${{ steps.get-date.outputs.tag }}
-            ${{ secrets.ALIYUN_REGISTRY }}/${{ secrets.ALIYUN_NAMESPACE }}/${{ secrets.ALIYUN_REPOSITORY }}:${{ steps.get-date.outputs.date_only }}
-            ${{ secrets.ALIYUN_REGISTRY }}/${{ secrets.ALIYUN_NAMESPACE }}/${{ secrets.ALIYUN_REPOSITORY }}:latest
+            ${{ secrets.ALIYUN_REGISTRY }}/${{ secrets.ALIYUN_NAMESPACE }}/${{ secrets.ALIYUN_REPOSITORY }}:pr${{ github.event.inputs.pr_num }}-${{ steps.get-date.outputs.tag }}
+            ${{ secrets.ALIYUN_REGISTRY }}/${{ secrets.ALIYUN_NAMESPACE }}/${{ secrets.ALIYUN_REPOSITORY }}:pr${{ github.event.inputs.pr_num }}-${{ steps.get-date.outputs.date_only }}
+            ${{ secrets.ALIYUN_REGISTRY }}/${{ secrets.ALIYUN_NAMESPACE }}/${{ secrets.ALIYUN_REPOSITORY }}:pr${{ github.event.inputs.pr_num }}
           # 启用 GitHub Actions 缓存，加速后续构建
           cache-from: type=gha
           cache-to: type=gha,mode=max
