@@ -74,7 +74,10 @@ services:
       -m /models/Hy-MT2-1.8B-1.25Bit.gguf
       -c 2048 
       -t 8
-      --parallel 2
+      -tb 8
+      --kv-unified
+      --host 0.0.0.0
+      --parallel 4
       --cont-batching
 ```
 
@@ -147,8 +150,10 @@ docker run -d \
 | `-tb 4` | 端口映射 |
 | `-p 8080:8080` | 批处理线程数 |
 | `-b 512` | 批处理大小 |
-| `--parallel 2` | 并发请求数 |
+| `--parallel 4` | 并发请求数 |
 | `--cont-batching` | 启用连续批处理 |
+| `--kv-unified` | 开启并发槽位键值缓存的“动态共享和按需分配” |
+
 ### llama-server 常用参数
 
 
