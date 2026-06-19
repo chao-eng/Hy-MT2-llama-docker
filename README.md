@@ -35,14 +35,73 @@
   - ModelScope 下载地址：[Hy-MT2-1.8B-1.25Bit-GGUF](https://modelscope.cn/models/Tencent-Hunyuan/Hy-MT2-1.8B-1.25Bit-GGUF)
 - **2Bit 极限量化版本** (约 600MB)：
   - ModelScope 下载地址：[Hy-MT2-1.8B-2Bit-GGUF](https://modelscope.cn/models/Tencent-Hunyuan/Hy-MT2-1.8B-2Bit-GGUF)
-- **常规量化版本（如 4Bit `Q4_K_M` 等）** (约 1.13GB)：
+- **常规量化版本（如 4Bit `Q4_K_M``）** (约 1.13GB)：
   - ModelScope 下载地址：[Hy-MT2-1.8B-GGUF](https://modelscope.cn/models/Tencent-Hunyuan/Hy-MT2-1.8B-GGUF)
 - **Hugging Face 官方合集**：
   - [Tencent Hy-MT2 官方空间](https://huggingface.co/collections/tencent/hy-mt2)
 
 ## 🚀 快速开始
 
-### 1. 构建镜像
+<details open>
+<summary><b>🐳 使用作者打包的镜像 (推荐，无需本地编译)</b></summary>
+<br>
+
+##### 1. 运行容器 (默认推荐镜像，针对 1.25-bit 及 4-bit量化 ，使用 PR #22836)
+
+```bash
+docker run -d \
+  --name hy-mt2 \
+  -p 8080:8080 \
+  -v /path/to/your/models:/models \
+  crpi-a1liy20beodq2bdl.cn-beijing.personal.cr.aliyuncs.com/bujic/llama-server:pr22836 \
+  -m /models/your-model.gguf \
+  -c 4096 \
+  -t $(nproc)
+```
+
+##### 2. Docker Compose 部署 (把模型文件放在 `./models` 目录下, 创建 `docker-compose.yml`)
+```yaml
+services:
+  llama-server:
+    image: crpi-a1liy20beodq2bdl.cn-beijing.personal.cr.aliyuncs.com/bujic/llama-server:pr22836 #镜像包
+    container_name: llama-server
+    restart: unless-stopped
+    volumes:
+      - ./models:/models #模型目录
+    ports:
+      - "8080:8080"
+    command: >
+      -m /models/Hy-MT2-1.8B-1.25Bit.gguf
+      -c 2048 
+      -t 8
+      --parallel 2
+      --cont-batching
+```
+
+```bash
+docker compose up -d
+```
+
+> **💡 镜像与模型文件对应说明**
+> 
+> | 目标模型文件 | 使用的镜像名称 (无需本地构建) |
+> | `Hy-MT2-1.8B-2Bit-GGUF` | `crpi-a1liy20beodq2bdl.cn-beijing.personal.cr.aliyuncs.com/bujic/llama-server:pr19357` |
+> 
+> **📊 性能与选择建议**
+> 
+> 经过实测，两者的推理速度差异较大：
+> - **PR #22836 镜像（1.25Bit / 4Bit）**：推理速度达到 **28.94 tokens/s**
+> - **PR #19357 镜像（2Bit）**：推理速度仅为 **7.19 tokens/s**
+> 
+> 💡 **选择建议**：强烈建议优先使用 **PR #22836** 版本镜像配合 **1.25Bit 极限量化模型**（`Hy-MT2-1.8B-1.25Bit-GGUF`）。它的推理速度是 2Bit 版本的 **3 倍左右**，且模型体积更小（仅约 462MB）。
+
+</details>
+
+<details>
+<summary><b>🛠️ 手动编译构建部署 (适合自定义修改)</b></summary>
+<br>
+
+##### 1. 构建镜像
 
 ```bash
 # 默认构建（针对 1.25-bit 及常规量化，使用 PR #22836）
@@ -52,24 +111,7 @@ docker build -t hy-mt2-server .
 docker build --build-arg PR_NUM=19357 -t hy-mt2-server:2bit .
 ```
 
-> **💡 构建参数与模型文件对应说明**
-> 
-> 在执行 `docker build` 时，必须通过 `--build-arg PR_NUM=xxxx` 来编译支持特定模型的 llama.cpp 版本。对应关系如下：
-> 
-> | 目标模型文件 | 编译所需 `PR_NUM` 参数 | 构建命令示例 |
-> |--------------|----------------------|--------------|
-> | `Hy-MT2-1.8B-1.25Bit-GGUF` 或 `Hy-MT2-1.8B-Q4_K_M.gguf` | `22836` (默认值) | `docker build -t hy-mt2-server .` |
-> | `Hy-MT2-1.8B-2Bit-GGUF` | `19357` | `docker build --build-arg PR_NUM=19357 -t hy-mt2-server:2bit .` |
-> 
-> **📊 推理性能测试与建议**
-> 
-> 经过实测，两者的推理速度差异较大：
-> - **PR #22836 版本（1.25Bit / 4Bit）**：推理速度达到 **21.94 tokens/s**
-> - **PR #19357 版本（2Bit）**：推理速度仅为 **7.19 tokens/s**
-> 
-> 💡 **选择建议**：强烈建议优先使用 **PR #22836** 版本配合 **1.25Bit 极限量化模型**（`Hy-MT2-1.8B-1.25Bit-GGUF`）。它的推理速度是 2Bit 版本的 **3 倍左右**，且模型体积更小（仅约 462MB）。
-
-### 2. 运行容器
+##### 2. 运行容器
 
 ```bash
 docker run -d \
@@ -82,6 +124,19 @@ docker run -d \
   -t $(nproc)
 ```
 
+> **💡 构建参数与模型文件对应说明**
+> 
+> 在执行 `docker build` 时，必须通过 `--build-arg PR_NUM=xxxx` 来编译支持特定模型的 llama.cpp 版本。对应关系如下：
+> 
+> | 目标模型文件 | 编译所需 `PR_NUM` 参数 | 构建命令示例 |
+> |--------------|----------------------|--------------|
+> | `Hy-MT2-1.8B-1.25Bit-GGUF` 或 `Hy-MT2-1.8B-Q4_K_M.gguf` | `22836` (默认值) | `docker build -t hy-mt2-server .` |
+> | `Hy-MT2-1.8B-2Bit-GGUF` | `19357` | `docker build --build-arg PR_NUM=19357 -t hy-mt2-server:2bit .` |
+
+</details>
+
+<br>
+
 **参数说明：**
 
 | 参数 | 说明 |
@@ -89,7 +144,14 @@ docker run -d \
 | `-m /models/your-model.gguf` | 模型文件路径（容器内路径） |
 | `-c 4096` | 上下文长度 |
 | `-t $(nproc)` | 推理线程数，建议设置为 CPU 核心数 |
-| `-p 8080:8080` | 端口映射 |
+| `-tb 4` | 端口映射 |
+| `-p 8080:8080` | 批处理线程数 |
+| `-b 512` | 批处理大小 |
+| `--parallel 2` | 并发请求数 |
+| `--cont-batching` | 启用连续批处理 |
+### llama-server 常用参数
+
+
 
 ### 💾 内存开销与性能评估 (-c 4096)
 
@@ -115,14 +177,6 @@ $$\text{总内存} = \text{模型权重体积 (Model Weights)} + \text{上下文
 *   **📊 总内存估计**：模型权重 (1.1 GiB) + KV Cache (280 MiB) + 框架开销与冗余 (约 200 MiB) ≈ **1.5 GB - 1.6 GB**。
 
 ---
-
-#### ⚖️ 1.25bit vs 4bit 对比 (在 -c 4096 下)
-
-| 指标 | 1.25bit (魔改 STQ 内核，PR #22836) | 标准 4bit (原生内核，PR #22836) |
-| :--- | :--- | :--- |
-| **容器物理内存占用 (RSS)** | **约 650 MB - 700 MB** | 约 1.5 GB - 1.6 GB |
-| **长文本翻译逻辑/智商** | 接近 4000 字时，容易出现指令漂移或格式错乱 | 配合 FP16 KV Cache，长文本上下文逻辑极其稳健 |
-| **纯 CPU 推理速度 (Eval)** | 纯 CPU 软算瓶颈，长文本速度可能会滑落至 **15 tokens/s** | 触发多核矢量/AMX 加速，速度依然能保持在 **80+ tokens/s** |
 
 ### 3. 验证与访问
 
@@ -217,27 +271,6 @@ curl http://localhost:8080/v1/chat/completions \
 | **`repetition_penalty`** | `1.05` | **重复惩罚系数**。对已生成词的重复出现进行微弱惩罚。设置为 `1.05` 可以在不破坏正常重词（如排版、标点）的前提下，有效避免模型陷入无限复读。 |
 | **`max_tokens`** | `2048` | **单次最大输出 Token 数**。控制单次 API 请求生成翻译结果的最大长度。该限制不等于模型的最大上下文（`-c`），仅限制输出结果的上限。 |
 
-### Python 调用示例
-
-```python
-from openai import OpenAI
-
-client = OpenAI(
-    base_url="http://localhost:8080/v1",
-    api_key="not-needed"  # llama.cpp 不需要 API Key
-)
-
-response = client.chat.completions.create(
-    model="hy-mt2",
-    messages=[
-        {"role": "system", "content": "You are a translation engine. Translate the following text from Chinese to English. Only output the translation."},
-        {"role": "user", "content": "开源模型让人工智能技术更加普惠。"}
-    ],
-    temperature=0.1
-)
-
-print(response.choices[0].message.content)
-```
 
 ## 📝 Hy-MT2 官方提示词（Prompt）指南
 
@@ -405,55 +438,6 @@ print(response.choices[0].message.content)
     [Source Text]
     {source_text}
     ```
-
-## ⚙️ 高级配置
-
-### llama-server 常用参数
-
-通过 `docker run` 末尾追加参数即可传递给 `llama-server`：
-
-```bash
-docker run -d \
-  -p 8080:8080 \
-  -v /path/to/models:/models \
-  hy-mt2-server \
-  -m /models/your-model.gguf \
-  -c 8192 \             # 上下文窗口大小
-  -t 8 \                # 推理线程数
-  -tb 4 \               # 批处理线程数
-  -b 512 \              # 批处理大小
-  --parallel 2 \        # 并发请求数
-  --cont-batching       # 启用连续批处理
-```
-
-### Docker Compose 部署
-
-创建 `docker-compose.yml`：
-
-```yaml
-services:
-  hy-mt2:
-    build:
-      context: .
-      args:
-        PR_NUM: 22836
-    container_name: hy-mt2-server
-    ports:
-      - "8080:8080"
-    volumes:
-      - ./models:/models
-    command: >
-      -m /models/your-model.gguf
-      -c 4096
-      -t 8
-      --parallel 2
-      --cont-batching
-    restart: unless-stopped
-```
-
-```bash
-docker compose up -d
-```
 
 ## 🏗️ 构建原理
 

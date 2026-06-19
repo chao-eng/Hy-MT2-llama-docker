@@ -1,0 +1,15 @@
+services:
+  llama-server:
+    image: crpi-a1liy20beodq2bdl.cn-beijing.personal.cr.aliyuncs.com/bujic/llama-server:pr22836 #镜像包
+    container_name: llama-server
+    restart: unless-stopped
+    volumes:
+      - ./models:/models #模型目录
+    ports:
+      - "8080:8080"
+    command: >
+      -m /models/Hy-MT2-1.8B-1.25Bit.gguf
+      -c 2048 
+      -t 8
+      --parallel 2
+      --cont-batching
