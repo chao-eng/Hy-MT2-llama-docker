@@ -219,6 +219,173 @@ response = client.chat.completions.create(
 print(response.choices[0].message.content)
 ```
 
+## 📝 Hy-MT2 官方提示词（Prompt）指南
+
+为了获得最佳的翻译效果，推荐使用官方设计的系统提示词（Prompt）。
+
+> ⚠️ **注意**：在以下示例中，`source_lang` 和 `target_lang` 均应使用完整的语言名称。例如：中文提示中应使用“中文”、“英文”、“日语”等，英文提示中应使用 "Chinese", "English", "Japanese" 等。
+
+### 1. 默认翻译 (Default Translation)
+
+*   **中文提示**：
+    ```text
+    将以下文本翻译为 {target_lang}，注意只需要输出翻译后的结果，不要额外解释：
+
+    {source_text}
+    ```
+*   **英文提示**：
+    ```text
+    Translate the following text into {target_lang}. Note that you should only output the translated result without any additional explanation:
+
+    {source_text}
+    ```
+
+---
+
+### 2. 术语翻译 (Translation with Glossary)
+
+*   **中文提示**：
+    ```text
+    参考下面的翻译：
+    {text} 翻译成 {text}
+    {text} 翻译成 {text}
+    {text} 翻译成 {text}
+    将以下文本翻译为 {target_lang}，注意只需要输出翻译后的结果，不要额外解释：
+
+    {source_text}
+    ```
+*   **英文提示**：
+    ```text
+    Reference the following translations:
+    {text} translates to {text}
+    {text} translates to {text}
+    {text} translates to {text}
+
+    Translate the following text into {target_lang}. Note that you must ONLY output the translated result without any additional explanation:
+
+    {source_text}
+    ```
+
+---
+
+### 3. 风格翻译 (Style-Constrained Translation)
+
+*   **中文提示**：
+    ```text
+    请将以下文本翻译为 {target_lang}。
+    注意翻译的风格要严格符合【{target_style}】
+
+    {source_text}
+    ```
+*   **英文提示**：
+    ```text
+    Please translate the following text into {target_lang}. Note that the translation style must strictly conform to [{target_style}]:
+
+    {source_text}
+    ```
+
+---
+
+### 4. 个性化偏好翻译 (Personalized Translation)
+
+*   **中文提示**：
+    ```text
+    【待翻译文本】
+    {source_text}
+
+    【翻译任务】
+    1、{user_preferences}
+    2、{user_preferences}
+    3、……
+    4、将【待翻译文本】翻译为 {target_lang}。
+    ```
+*   **英文提示**：
+    ```text
+    [Source Text]
+    {source_text}
+
+    [Translation Tasks]
+    1. {user_preferences}
+    2. {user_preferences}
+    3. ...
+    4. Translate the [Source Text] into {target_lang}.
+    ```
+
+---
+
+### 5. 带分隔符的翻译 (Translation with Delimiters)
+
+*   **中文提示**：
+    ```text
+    请将以下文本准确翻译为 {target_lang}。
+    你必须在译文中保留等量的分隔符，绝对不可遗漏、转义或翻译该符号，并注意分隔符的位置。
+
+    {source_text}
+    ```
+*   **英文提示**：
+    ```text
+    Please accurately translate the following text into {target_lang}.
+    You must retain the exact same number of delimiters in the translation. Strictly do not omit, escape, or translate these symbols, and pay close attention to their placement.
+
+    {source_text}
+    ```
+
+---
+
+### 6. 结构化数据翻译 1 (Structured Data Translation - Rules)
+
+*   **中文提示**：
+    ```text
+    # 任务目标
+    将下方 {source_text} 中的 {format_type} 格式数据翻译为 {target_lang}。
+
+    # 严格约束
+    1. 结构锁定：绝对保持原有的 {format_type} 数据结构、缩进和层级完全不变。
+    2. 选择性翻译：仅翻译面向用户展示的可见文本内容。
+    3. 禁止修改：严禁翻译或更改任何代码标签、键名 (Key)、变量占位符（如 {{var}}、${var}、%s、%d 等）或代码属性。
+
+    # 数据输入
+    {source_text}
+    ```
+*   **英文提示**：
+    ```text
+    ### Task
+    Translate the user-facing text within the following {format_type} data into {target_lang}.
+
+    ### Strict Rules
+    1. Structure Preservation: You MUST preserve the original {format_type} data structure, nesting, hierarchy, and indentation exactly as they are.
+    2. Selective Translation: Translate ONLY the visible, user-facing text content/values.
+    3. Strict Non-Translation: NEVER translate or alter code tags, keys, properties, object names, or variable placeholders. Leave them exactly in their original English/code form.
+
+    ### Source Data
+    {source_text}
+    ```
+
+---
+
+### 7. 结构化数据翻译 2 (Structured Data Translation with Background)
+
+*   **中文提示**：
+    ```text
+    【背景信息】
+    {background_text}
+
+    请结合背景信息将以下文本翻译为 {target_lang}。
+
+    【待翻译文本】
+    {source_text}
+    ```
+*   **英文提示**：
+    ```text
+    [Background Information]
+    {background_text}
+
+    Please translate the following text into {target_lang}, taking the provided background information into consideration.
+
+    [Source Text]
+    {source_text}
+    ```
+
 ## ⚙️ 高级配置
 
 ### llama-server 常用参数
