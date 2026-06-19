@@ -21,16 +21,18 @@ ARG PR_NUM=22836
 RUN git clone https://github.com/ggml-org/llama.cpp.git . && \
     git fetch origin pull/${PR_NUM}/head && \
     git reset --hard FETCH_HEAD && \
-    # 💡 核心优化二：针对 Linux CPU 容器开启加速优化
+    # 💡 核心优化二：针对 Linux CPU 容器开启多架构兼容与加速优化
     # -DGGML_OPENMP=ON: 开启多线程并行计算加速
-    # -DCMAKE_C_FLAGS / -DCMAKE_CXX_FLAGS: 注入通用底层优化指令（对齐现代 AMD/ARM 架构基本盘）
+    # -DGGML_NATIVE=OFF: 关闭构建主机的原生指令绑定，确保多架构交叉编译出的镜像在其他设备上不崩溃
+    # -DCMAKE_C_FLAGS / -DCMAKE_CXX_FLAGS: 注入通用底层优化指令（-O3）
     cmake -B build \
       -DLLAMA_SERVER=ON \
       -DLLAMA_BUILD_TESTS=OFF \
       -DLLAMA_BUILD_EXAMPLES=OFF \
       -DGGML_OPENMP=ON \
-      -DCMAKE_C_FLAGS="-O3 -march=native" \
-      -DCMAKE_CXX_FLAGS="-O3 -march=native" && \
+      -DGGML_NATIVE=OFF \
+      -DCMAKE_C_FLAGS="-O3" \
+      -DCMAKE_CXX_FLAGS="-O3" && \
     cmake --build build --config Release --target llama-server -j$(nproc)
 
 # ==============================================================================
