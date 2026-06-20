@@ -32,6 +32,9 @@
     "externalBin": [
       "binaries/llama-server"
     ],
+    "macOS": {
+      "entitlements": "./Entitlements.plist"
+    },
     "windows": {
       "wix": {
         "language": "zh-CN"
