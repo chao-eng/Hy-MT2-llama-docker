@@ -1,0 +1,50 @@
+name: "Release Build"
+
+on:
+  workflow_dispatch: # 仅支持在 GitHub Action 页面手动触发构建
+
+jobs:
+  publish-tauri:
+    permissions:
+      contents: write # 创建发布版本（GitHub Release）并上传构建物时需要写入权限
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+          - os: macos-latest
+            target: aarch64-apple-darwin
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: 'desktop/package-lock.json'
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install frontend dependencies
+        run: npm install
+        working-directory: desktop
+
+      - name: Build and Package Tauri App
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: 'desktop'
+          tagName: ${{ github.ref_name || 'draft-build' }}
+          releaseName: 'Hy-MT2 翻译器 ${{ github.ref_name || 'Draft' }}'
+          releaseBody: '本版本由 GitHub Actions 自动打包生成，包含 Windows x64 与 macOS ARM (Apple Silicon) 版本的安装程序。'
+          releaseDraft: true
+          prerelease: false
