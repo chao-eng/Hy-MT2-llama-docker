@@ -1,0 +1,81 @@
+name: Build llama-server Binaries
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_num:
+        description: 'llama.cpp Pull Request Number to build (e.g. 22836 for 1.25bit, 19357 for 2bit)'
+        required: true
+        default: '22836'
+
+jobs:
+  build-windows:
+    name: Build Windows x64 Binary
+    runs-on: windows-latest
+    steps:
+      - name: Clone llama.cpp
+        run: |
+          git clone https://github.com/ggml-org/llama.cpp.git llama-src
+          cd llama-src
+          git fetch origin pull/${{ github.event.inputs.pr_num }}/head
+          git checkout -b build-branch FETCH_HEAD
+          git submodule update --init --recursive
+
+      - name: Configure CMake
+        run: |
+          cd llama-src
+          cmake -B build -DLLAMA_SERVER=ON -DLLAMA_BUILD_EXAMPLES=OFF -DLLAMA_BUILD_TESTS=OFF -DGGML_OPENMP=ON -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build llama-server
+        run: |
+          cd llama-src
+          cmake --build build --config Release --target llama-server --parallel 4
+
+      - name: Rename Binary
+        run: |
+          Move-Item llama-src/build/bin/Release/llama-server.exe llama-src/build/bin/Release/llama-server-pr${{ github.event.inputs.pr_num }}.exe
+
+      - name: Upload Windows Binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: llama-server-windows-pr-${{ github.event.inputs.pr_num }}
+          path: llama-src/build/bin/Release/llama-server-pr${{ github.event.inputs.pr_num }}.exe
+
+  build-macos:
+    name: Build macOS Universal Binary
+    runs-on: macos-latest
+    steps:
+      - name: Clone llama.cpp
+        run: |
+          git clone https://github.com/ggml-org/llama.cpp.git llama-src
+          cd llama-src
+          git fetch origin pull/${{ github.event.inputs.pr_num }}/head
+          git checkout -b build-branch FETCH_HEAD
+          git submodule update --init --recursive
+
+      - name: Configure CMake (Apple Silicon & Intel Universal Binary)
+        run: |
+          cd llama-src
+          # Compile as universal binary (arm64 + x86_64) and enable Metal GPU acceleration
+          cmake -B build \
+            -DLLAMA_SERVER=ON \
+            -DLLAMA_BUILD_EXAMPLES=OFF \
+            -DLLAMA_BUILD_TESTS=OFF \
+            -DGGML_METAL=ON \
+            -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" \
+            -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build llama-server
+        run: |
+          cd llama-src
+          cmake --build build --config Release --target llama-server --parallel 4
+
+      - name: Rename Binary
+        run: |
+          mv llama-src/build/bin/llama-server llama-src/build/bin/llama-server-pr${{ github.event.inputs.pr_num }}
+
+      - name: Upload macOS Binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: llama-server-macos-pr-${{ github.event.inputs.pr_num }}
+          path: llama-src/build/bin/llama-server-pr${{ github.event.inputs.pr_num }}
