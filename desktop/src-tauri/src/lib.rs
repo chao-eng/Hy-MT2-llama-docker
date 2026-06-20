@@ -177,8 +177,52 @@ fn list_models(app_handle: AppHandle, custom_dir: Option<String>) -> Result<Vec<
     Ok(models)
 }
 
+#[cfg(windows)]
+fn setup_job_object() {
+    use windows_sys::Win32::System::JobObjects::{
+        CreateJobObjectW, SetInformationJobObject, AssignProcessToJobObject,
+        JobObjectExtendedLimitInformation, JOBOBJECT_EXTENDED_LIMIT_INFORMATION,
+        JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE,
+    };
+    use windows_sys::Win32::System::Threading::GetCurrentProcess;
+    use std::ptr;
+    use std::mem;
+
+    unsafe {
+        let job = CreateJobObjectW(ptr::null(), ptr::null());
+        if job == 0 {
+            eprintln!("Failed to create job object");
+            return;
+        }
+
+        let mut info: JOBOBJECT_EXTENDED_LIMIT_INFORMATION = mem::zeroed();
+        info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+
+        let res = SetInformationJobObject(
+            job,
+            JobObjectExtendedLimitInformation,
+            &info as *const _ as *const _,
+            mem::size_of::<JOBOBJECT_EXTENDED_LIMIT_INFORMATION>() as u32,
+        );
+
+        if res == 0 {
+            eprintln!("Failed to set job object information");
+            return;
+        }
+
+        let current_process = GetCurrentProcess();
+        let res = AssignProcessToJobObject(job, current_process);
+        if res == 0 {
+            eprintln!("Failed to assign process to job object");
+        }
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    #[cfg(windows)]
+    setup_job_object();
+
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_shell::init())

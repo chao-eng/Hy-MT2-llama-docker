@@ -716,6 +716,7 @@ dependencies = [
  "tauri-plugin-opener",
  "tauri-plugin-shell",
  "tokio",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
