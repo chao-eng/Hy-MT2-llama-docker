@@ -2,6 +2,11 @@ name: "Release Build"
 
 on:
   workflow_dispatch: # 仅支持在 GitHub Action 页面手动触发构建
+    inputs:
+      version:
+        description: '发布版本号 (例如 v0.1.0)'
+        required: true
+        default: 'v0.1.0'
 
 jobs:
   publish-tauri:
@@ -43,8 +48,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           projectPath: 'desktop'
-          tagName: ${{ github.ref_name || 'draft-build' }}
-          releaseName: 'Hy-MT2 翻译器 ${{ github.ref_name || 'Draft' }}'
-          releaseBody: '本版本由 GitHub Actions 自动打包生成，包含 Windows x64 与 macOS ARM (Apple Silicon) 版本的安装程序。'
+          tagName: ${{ github.event.inputs.version }}
+          releaseName: 'Hy-MT2 翻译器 ${{ github.event.inputs.version }}'
+          releaseBody: '本版本由 GitHub Actions 手动打包生成，包含 Windows x64 与 macOS ARM (Apple Silicon) 版本的安装程序。'
           releaseDraft: true
           prerelease: false
