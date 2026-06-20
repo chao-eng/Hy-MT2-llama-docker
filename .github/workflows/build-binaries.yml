@@ -24,12 +24,16 @@ jobs:
       - name: Configure CMake
         run: |
           cd llama-src
-          cmake -B build -DLLAMA_SERVER=ON -DLLAMA_BUILD_EXAMPLES=OFF -DLLAMA_BUILD_TESTS=OFF -DGGML_OPENMP=ON -DCMAKE_BUILD_TYPE=Release
+          cmake -B build -DLLAMA_SERVER=ON -DLLAMA_BUILD_EXAMPLES=OFF -DLLAMA_BUILD_TESTS=OFF -DLLAMA_OPENSSL=OFF -DBUILD_SHARED_LIBS=OFF -DGGML_OPENMP=ON -DCMAKE_BUILD_TYPE=Release
 
       - name: Build llama-server
         run: |
           cd llama-src
           cmake --build build --config Release --target llama-server --parallel 4
+
+      - name: List Build Outputs
+        run: |
+          Get-ChildItem -Path llama-src/build/bin/ -Recurse | Select-Object FullName, Length
 
       - name: Rename Binary
         run: |
@@ -42,7 +46,7 @@ jobs:
           path: llama-src/build/bin/Release/llama-server-pr${{ github.event.inputs.pr_num }}.exe
 
   build-macos:
-    name: Build macOS Universal Binary
+    name: Build macOS ARM64 Binary
     runs-on: macos-latest
     steps:
       - name: Clone llama.cpp
@@ -53,22 +57,28 @@ jobs:
           git checkout -b build-branch FETCH_HEAD
           git submodule update --init --recursive
 
-      - name: Configure CMake (Apple Silicon & Intel Universal Binary)
+      - name: Configure CMake (Apple Silicon arm64)
         run: |
           cd llama-src
-          # Compile as universal binary (arm64 + x86_64) and enable Metal GPU acceleration
+          # Compile for Apple Silicon (arm64) and enable Metal GPU acceleration
           cmake -B build \
             -DLLAMA_SERVER=ON \
             -DLLAMA_BUILD_EXAMPLES=OFF \
             -DLLAMA_BUILD_TESTS=OFF \
+            -DLLAMA_OPENSSL=OFF \
+            -DBUILD_SHARED_LIBS=OFF \
             -DGGML_METAL=ON \
-            -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" \
+            -DCMAKE_OSX_ARCHITECTURES="arm64" \
             -DCMAKE_BUILD_TYPE=Release
 
       - name: Build llama-server
         run: |
           cd llama-src
           cmake --build build --config Release --target llama-server --parallel 4
+
+      - name: List Build Outputs
+        run: |
+          find llama-src/build/bin -type f -exec ls -lh {} \;
 
       - name: Rename Binary
         run: |
@@ -77,5 +87,5 @@ jobs:
       - name: Upload macOS Binary
         uses: actions/upload-artifact@v4
         with:
-          name: llama-server-macos-pr-${{ github.event.inputs.pr_num }}
+          name: llama-server-macos-arm64-pr-${{ github.event.inputs.pr_num }}
           path: llama-src/build/bin/llama-server-pr${{ github.event.inputs.pr_num }}
