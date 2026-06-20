@@ -19,6 +19,8 @@ let btnCopy;
 let metricsContainer;
 let metricSpeed;
 let metricTime;
+let btnThemeToggle;
+let btnQuickToggleServer;
 
 // Settings DOM Cache
 let engineStatus;
@@ -53,6 +55,7 @@ let settingsForm;
 // Initialize
 window.addEventListener("DOMContentLoaded", async () => {
   initDOM();
+  initTheme();
   setupEventListeners();
   await loadSettings();
   await checkStatus();
@@ -71,6 +74,8 @@ function initDOM() {
   metricsContainer = document.querySelector("#translation-metrics");
   metricSpeed = document.querySelector("#metric-speed");
   metricTime = document.querySelector("#metric-time");
+  btnThemeToggle = document.querySelector("#btn-theme-toggle");
+  btnQuickToggleServer = document.querySelector("#btn-quick-toggle-server");
 
   // Settings
   engineStatus = document.querySelector("#engine-status");
@@ -103,7 +108,27 @@ function initDOM() {
   settingsForm = document.querySelector("#settings-form");
 }
 
+function initTheme() {
+  const savedTheme = localStorage.getItem("theme") || "dark";
+  if (savedTheme === "light") {
+    document.body.classList.add("light-theme");
+    btnThemeToggle.textContent = "☀️";
+  } else {
+    document.body.classList.remove("light-theme");
+    btnThemeToggle.textContent = "🌙";
+  }
+}
+
+function toggleTheme() {
+  const isLight = document.body.classList.toggle("light-theme");
+  btnThemeToggle.textContent = isLight ? "☀️" : "🌙";
+  localStorage.setItem("theme", isLight ? "light" : "dark");
+}
+
 function setupEventListeners() {
+  // Theme Toggle
+  btnThemeToggle.addEventListener("click", toggleTheme);
+
   // Tab Switcher
   navItems.forEach(item => {
     item.addEventListener("click", () => {
@@ -165,6 +190,7 @@ function setupEventListeners() {
 
   // Toggle Server
   btnToggleServer.addEventListener("click", toggleServer);
+  btnQuickToggleServer.addEventListener("click", toggleServer);
 
   // Start Download
   btnStartDownload.addEventListener("click", async () => {
@@ -178,6 +204,15 @@ function setupEventListeners() {
       showToast("启动下载失败: " + e, true);
       btnStartDownload.disabled = false;
     }
+  });
+
+  // Copy Prompts
+  document.querySelectorAll(".btn-copy-prompt").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const text = btn.getAttribute("data-prompt");
+      navigator.clipboard.writeText(text);
+      showToast("指令模板复制成功");
+    });
   });
 }
 
@@ -255,11 +290,13 @@ async function checkStatus() {
       modelFileStatus.className = "status-badge ok";
       downloaderPanel.style.display = "none";
       btnToggleServer.disabled = false;
+      btnQuickToggleServer.disabled = false;
     } else {
       modelFileStatus.textContent = "未检测到模型 (GGUF 缺失)";
       modelFileStatus.className = "status-badge error";
       downloaderPanel.style.display = "block";
       btnToggleServer.disabled = true;
+      btnQuickToggleServer.disabled = true;
     }
 
     // 2. Check Server Running Status
@@ -275,6 +312,9 @@ async function checkStatus() {
       btnToggleServer.textContent = "停止引擎";
       btnToggleServer.className = "btn btn-danger";
 
+      btnQuickToggleServer.textContent = "🔌 停止引擎";
+      btnQuickToggleServer.className = "btn btn-xs btn-danger";
+
       sidebarStatusDot.className = "status-indicator-dot running";
       sidebarStatusText.textContent = `引擎在线 (端口 ${serverPort})`;
     } else {
@@ -284,6 +324,9 @@ async function checkStatus() {
       engineApiUrl.textContent = "http://127.0.0.1:--/v1";
       btnToggleServer.textContent = "启动引擎";
       btnToggleServer.className = "btn btn-success";
+
+      btnQuickToggleServer.textContent = "⚡ 启动引擎";
+      btnQuickToggleServer.className = "btn btn-xs btn-success";
 
       sidebarStatusDot.className = "status-indicator-dot stopped";
       sidebarStatusText.textContent = "引擎未启动";
@@ -297,6 +340,7 @@ async function checkStatus() {
 async function toggleServer() {
   try {
     btnToggleServer.disabled = true;
+    btnQuickToggleServer.disabled = true;
     if (isServerRunning) {
       engineStatus.textContent = "停止中...";
       engineStatus.className = "status-badge loading";
@@ -314,6 +358,7 @@ async function toggleServer() {
   } finally {
     await checkStatus();
     btnToggleServer.disabled = false;
+    btnQuickToggleServer.disabled = false;
   }
 }
 
@@ -473,9 +518,9 @@ function showToast(message, isError = false) {
     padding: "12px 24px",
     borderRadius: "10px",
     backgroundColor: isError ? "var(--color-error)" : "var(--bg-sidebar)",
-    color: "#fff",
+    color: isError ? "#ffffff" : "var(--text-primary)",
     border: "1px solid var(--border-color)",
-    boxShadow: "0 10px 25px rgba(0,0,0,0.4)",
+    boxShadow: "0 10px 25px rgba(0,0,0,0.2)",
     fontSize: "14px",
     fontWeight: "500",
     zIndex: "9999",

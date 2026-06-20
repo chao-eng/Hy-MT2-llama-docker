@@ -1,236 +1,530 @@
 <!doctype html>
 <html lang="zh-CN">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Hy-MT2 智能翻译客户端</title>
-    <link rel="stylesheet" href="styles.css" />
-    <script type="module" src="/main.js" defer></script>
-  </head>
-  <body>
-    <div class="app-layout">
-      <!-- Sidebar / Navigation -->
-      <aside class="sidebar">
-        <div class="brand">
-          <div class="logo-icon">🐳</div>
-          <h2>Hy-MT2 翻译器</h2>
-        </div>
-        <nav class="nav-menu">
-          <button class="nav-item active" data-tab="tab-translate">
-            <span class="icon">💬</span> 翻译游乐场
-          </button>
-          <button class="nav-item" data-tab="tab-settings">
-            <span class="icon">⚙️</span> 系统设置
-          </button>
-        </nav>
-        <div class="sidebar-status">
-          <div class="status-indicator-dot" id="sidebar-status-dot"></div>
-          <span id="sidebar-status-text">检查中...</span>
-        </div>
-      </aside>
 
-      <!-- Main Content Area -->
-      <main class="content-area">
-        <!-- Tab 1: Translate -->
-        <section id="tab-translate" class="tab-content active">
-          <div class="translate-container">
-            <div class="translate-header">
-              <div class="language-selector">
-                <span class="label">目标语言：</span>
-                <select id="target-lang-select" class="custom-select">
-                  <option value="中文">中文 (Chinese)</option>
-                  <option value="英语">英语 (English)</option>
-                  <option value="法语">法语 (French)</option>
-                  <option value="葡萄牙语">葡萄牙语 (Portuguese)</option>
-                  <option value="西班牙语">西班牙语 (Spanish)</option>
-                  <option value="日语">日语 (Japanese)</option>
-                  <option value="土耳其语">土耳其语 (Turkish)</option>
-                  <option value="俄语">俄语 (Russian)</option>
-                  <option value="阿拉伯语">阿拉伯语 (Arabic)</option>
-                  <option value="韩语">韩语 (Korean)</option>
-                  <option value="泰语">泰语 (Thai)</option>
-                  <option value="意大利语">意大利语 (Italian)</option>
-                  <option value="德语">德语 (German)</option>
-                  <option value="越南语">越南语 (Vietnamese)</option>
-                  <option value="马来语">马来语 (Malay)</option>
-                  <option value="印尼语">印尼语 (Indonesian)</option>
-                  <option value="菲律宾语">菲律宾语 (Filipino)</option>
-                  <option value="印地语">印地语 (Hindi)</option>
-                  <option value="繁体中文">繁体中文 (Traditional Chinese)</option>
-                  <option value="波兰语">波兰语 (Polish)</option>
-                  <option value="捷克语">捷克语 (Czech)</option>
-                  <option value="荷兰语">荷兰语 (Dutch)</option>
-                  <option value="高棉语">高棉语 (Khmer)</option>
-                  <option value="缅甸语">缅甸语 (Burmese)</option>
-                  <option value="波斯语">波斯语 (Persian)</option>
-                  <option value="古吉拉特语">古吉拉特语 (Gujarati)</option>
-                  <option value="乌尔都语">乌尔都语 (Urdu)</option>
-                  <option value="泰卢固语">泰卢固语 (Telugu)</option>
-                  <option value="马拉地语">马拉地语 (Marathi)</option>
-                  <option value="希伯来语">希伯来语 (Hebrew)</option>
-                  <option value="孟加拉语">孟加拉语 (Bengali)</option>
-                  <option value="泰米尔语">泰米尔语 (Tamil)</option>
-                  <option value="乌克兰语">乌克兰语 (Ukrainian)</option>
-                  <option value="藏语">藏语 (Tibetan)</option>
-                  <option value="哈萨克语">哈萨克语 (Kazakh)</option>
-                  <option value="蒙古语">蒙古语 (Mongolian)</option>
-                  <option value="维吾尔语">维吾尔语 (Uyghur)</option>
-                  <option value="粤语">粤语 (Cantonese)</option>
-                </select>
-              </div>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hy-MT2 智能翻译客户端</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script type="module" src="/main.js" defer></script>
+</head>
+
+<body>
+  <!-- Floating Theme Toggle -->
+  <button id="btn-theme-toggle" class="btn-theme-toggle" title="切换主题">🌙</button>
+
+  <div class="app-layout">
+    <!-- Sidebar / Navigation -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="logo-icon">🐳</div>
+        <h2>Hy-MT2 翻译器</h2>
+      </div>
+      <nav class="nav-menu">
+        <button class="nav-item active" data-tab="tab-translate">
+          <span class="icon">💬</span> 智能翻译
+        </button>
+        <button class="nav-item" data-tab="tab-settings">
+          <span class="icon">⚙️</span> 系统设置
+        </button>
+        <button class="nav-item" data-tab="tab-prompts">
+          <span class="icon">💡</span> 推荐指令
+        </button>
+
+      </nav>
+      <div class="sidebar-status">
+        <div class="status-indicator-dot" id="sidebar-status-dot"></div>
+        <span id="sidebar-status-text">检查中...</span>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="content-area">
+      <!-- Tab 1: Translate -->
+      <section id="tab-translate" class="tab-content active">
+        <div class="translate-container">
+          <div class="translate-header">
+            <div class="language-selector">
+              <span class="label">目标语言：</span>
+              <select id="target-lang-select" class="custom-select">
+                <option value="中文">中文 (Chinese)</option>
+                <option value="英语" selected>英语 (English)</option>
+                <option value="法语">法语 (French)</option>
+                <option value="葡萄牙语">葡萄牙语 (Portuguese)</option>
+                <option value="西班牙语">西班牙语 (Spanish)</option>
+                <option value="日语">日语 (Japanese)</option>
+                <option value="土耳其语">土耳其语 (Turkish)</option>
+                <option value="俄语">俄语 (Russian)</option>
+                <option value="阿拉伯语">阿拉伯语 (Arabic)</option>
+                <option value="韩语">韩语 (Korean)</option>
+                <option value="泰语">泰语 (Thai)</option>
+                <option value="意大利语">意大利语 (Italian)</option>
+                <option value="德语">德语 (German)</option>
+                <option value="越南语">越南语 (Vietnamese)</option>
+                <option value="马来语">马来语 (Malay)</option>
+                <option value="印尼语">印尼语 (Indonesian)</option>
+                <option value="菲律宾语">菲律宾语 (Filipino)</option>
+                <option value="印地语">印地语 (Hindi)</option>
+                <option value="繁体中文">繁体中文 (Traditional Chinese)</option>
+                <option value="波兰语">波兰语 (Polish)</option>
+                <option value="捷克语">捷克语 (Czech)</option>
+                <option value="荷兰语">荷兰语 (Dutch)</option>
+                <option value="高棉语">高棉语 (Khmer)</option>
+                <option value="缅甸语">缅甸语 (Burmese)</option>
+                <option value="波斯语">波斯语 (Persian)</option>
+                <option value="古吉拉特语">古吉拉特语 (Gujarati)</option>
+                <option value="乌尔都语">乌尔都语 (Urdu)</option>
+                <option value="泰卢固语">泰卢固语 (Telugu)</option>
+                <option value="马拉地语">马拉地语 (Marathi)</option>
+                <option value="希伯来语">希伯来语 (Hebrew)</option>
+                <option value="孟加拉语">孟加拉语 (Bengali)</option>
+                <option value="泰米尔语">泰米尔语 (Tamil)</option>
+                <option value="乌克兰语">乌克兰语 (Ukrainian)</option>
+                <option value="藏语">藏语 (Tibetan)</option>
+                <option value="哈萨克语">哈萨克语 (Kazakh)</option>
+                <option value="蒙古语">蒙古语 (Mongolian)</option>
+                <option value="维吾尔语">维吾尔语 (Uyghur)</option>
+                <option value="粤语">粤语 (Cantonese)</option>
+              </select>
+            </div>
+            <div class="header-actions">
               <div class="metrics" id="translation-metrics" style="display: none;">
                 <span id="metric-speed">-- tokens/s</span>
                 <span class="divider">|</span>
                 <span id="metric-time">--s</span>
               </div>
-            </div>
-
-            <div class="playground-grid">
-              <!-- Source Box -->
-              <div class="playground-card source-card">
-                <div class="card-header">
-                  <h3>原文输入</h3>
-                  <button id="btn-clear" class="btn-icon" title="清空">🗑️</button>
-                </div>
-                <textarea id="source-text-input" placeholder="请输入要翻译的文本..." autofocus></textarea>
-              </div>
-
-              <!-- Target Box -->
-              <div class="playground-card target-card">
-                <div class="card-header">
-                  <h3>译文结果</h3>
-                  <button id="btn-copy" class="btn-icon" title="复制译文">📋</button>
-                </div>
-                <div id="target-text-output" class="output-placeholder">翻译结果将在这里流式展示...</div>
-              </div>
-            </div>
-
-            <div class="action-bar">
-              <button id="btn-translate" class="btn btn-primary btn-large">💬 立即翻译</button>
+              <button id="btn-quick-toggle-server" class="btn btn-xs btn-success" disabled>⚡ 启动引擎</button>
             </div>
           </div>
-        </section>
 
-        <!-- Tab 2: Settings -->
-        <section id="tab-settings" class="tab-content">
-          <div class="settings-container">
-            <!-- Server Status Card -->
-            <div class="settings-card">
-              <h3>服务状态</h3>
-              <div class="status-grid">
-                <div class="status-item">
-                  <span class="label">引擎状态：</span>
-                  <span id="engine-status" class="status-badge stopped">已停止</span>
-                </div>
-                <div class="status-item">
-                  <span class="label">服务端口：</span>
-                  <span id="engine-port">--</span>
-                </div>
-                <div class="status-item full-width">
-                  <span class="label">API 地址：</span>
-                  <code id="engine-api-url">http://127.0.0.1:--/v1</code>
-                  <button id="btn-copy-api" class="btn btn-xs">复制</button>
-                </div>
-                <div class="status-item full-width">
-                  <span class="label">模型文件：</span>
-                  <span id="model-file-status" class="status-badge error">未检测到模型</span>
-                </div>
+          <div class="playground-grid">
+            <!-- Source Box -->
+            <div class="playground-card source-card">
+              <div class="card-header">
+                <h3>原文输入</h3>
+                <button id="btn-clear" class="btn-icon" title="清空">🗑️</button>
               </div>
-              <div class="status-actions">
-                <button id="btn-toggle-server" class="btn btn-success">启动引擎</button>
-              </div>
+              <textarea id="source-text-input" placeholder="请输入要翻译的文本..." autofocus></textarea>
             </div>
 
-            <!-- Downloader Card (Only shown when model is missing) -->
-            <div class="settings-card downloader-card" id="downloader-panel" style="display: none;">
-              <h3>模型下载</h3>
-              <p class="description">未在配置目录检测到 GGUF 翻译模型，可一键下载轻量级 1.25bit 极限量化版模型（约 462MB）。</p>
-              <div class="downloader-controls">
-                <button id="btn-start-download" class="btn btn-primary">🌐 一键下载模型</button>
+            <!-- Target Box -->
+            <div class="playground-card target-card">
+              <div class="card-header">
+                <h3>译文结果</h3>
+                <button id="btn-copy" class="btn-icon" title="复制译文">📋</button>
               </div>
-              <div class="download-progress-container" id="download-progress-box" style="display: none;">
-                <div class="progress-info">
-                  <span id="download-status-label">正在连接...</span>
-                  <span id="download-speed">0.0 MB/s</span>
-                </div>
-                <div class="progress-bar-wrapper">
-                  <div class="progress-bar-fill" id="download-progress-bar" style="width: 0%;"></div>
-                </div>
-                <div class="progress-sub-info">
-                  <span id="download-bytes-info">0 MB / 0 MB</span>
-                  <span id="download-percent">0%</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Configuration Form -->
-            <div class="settings-card">
-              <h3>核心参数配置</h3>
-              <form id="settings-form">
-                <!-- Model Folder Picker -->
-                <div class="form-group">
-                  <label>模型存储目录：</label>
-                  <div class="input-with-button">
-                    <input type="text" id="cfg-model-dir" readonly placeholder="选择模型存放文件夹..." />
-                    <button type="button" id="btn-browse-dir" class="btn">选择文件夹</button>
-                  </div>
-                </div>
-
-                <!-- Port Configuration -->
-                <div class="form-group row-fields">
-                  <div class="field-item">
-                    <label>端口模式：</label>
-                    <select id="cfg-port-mode" class="custom-select">
-                      <option value="random">随机闲置端口 (推荐)</option>
-                      <option value="fixed">固定端口</option>
-                    </select>
-                  </div>
-                  <div class="field-item" id="fixed-port-box" style="display: none;">
-                    <label>端口号：</label>
-                    <input type="number" id="cfg-port" min="1024" max="65535" value="8080" />
-                  </div>
-                </div>
-
-                <!-- Networking -->
-                <div class="form-group">
-                  <label class="checkbox-container">
-                    <input type="checkbox" id="cfg-allow-external" />
-                    <span class="checkmark"></span>
-                    允许局域网外部连接 (对外提供 OpenAI API 接口)
-                  </label>
-                </div>
-
-                <!-- CPU / Context Config -->
-                <div class="form-group row-fields">
-                  <div class="field-item">
-                    <label>推理线程数 (Threads)：</label>
-                    <input type="number" id="cfg-threads" min="1" max="64" />
-                  </div>
-                  <div class="field-item">
-                    <label>最大上下文长度 (Context)：</label>
-                    <select id="cfg-context-size" class="custom-select">
-                      <option value="1024">1024</option>
-                      <option value="2048" selected>2048</option>
-                      <option value="4096">4096</option>
-                    </select>
-                  </div>
-                </div>
-
-                <!-- Prompt Template -->
-                <div class="form-group">
-                  <label>翻译系统提示词模版 (Prompt Template)：</label>
-                  <textarea id="cfg-prompt-template" rows="5" placeholder="自定义系统提示词，支持 {target_lang} 和 {source_text} 占位符..."></textarea>
-                  <span class="field-help">模版中必须包含 <code>{target_lang}</code> 和 <code>{source_text}</code>，翻译时会自动替换。</span>
-                </div>
-
-                <div class="form-actions">
-                  <button type="submit" class="btn btn-primary">💾 保存配置</button>
-                </div>
-              </form>
+              <div id="target-text-output" class="output-placeholder">翻译结果将在这里流式展示...</div>
             </div>
           </div>
-        </section>
-      </main>
-    </div>
-  </body>
+
+          <div class="action-bar">
+            <button id="btn-translate" class="btn btn-primary btn-large">💬 立即翻译</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Tab 2: Settings -->
+      <section id="tab-settings" class="tab-content">
+        <div class="settings-container">
+          <!-- Server Status Card -->
+          <div class="settings-card">
+            <h3>服务状态</h3>
+            <div class="status-grid">
+              <div class="status-item">
+                <span class="label">引擎状态：</span>
+                <span id="engine-status" class="status-badge stopped">已停止</span>
+              </div>
+              <div class="status-item">
+                <span class="label">服务端口：</span>
+                <span id="engine-port">--</span>
+              </div>
+              <div class="status-item full-width">
+                <span class="label">API 地址：</span>
+                <code id="engine-api-url">http://127.0.0.1:--/v1</code>
+                <button id="btn-copy-api" class="btn btn-xs">复制</button>
+              </div>
+              <div class="status-item full-width">
+                <span class="label">模型文件：</span>
+                <span id="model-file-status" class="status-badge error">未检测到模型</span>
+              </div>
+            </div>
+            <div class="status-actions">
+              <button id="btn-toggle-server" class="btn btn-success">启动引擎</button>
+            </div>
+          </div>
+
+          <!-- Downloader Card (Only shown when model is missing) -->
+          <div class="settings-card downloader-card" id="downloader-panel" style="display: none;">
+            <h3>模型下载</h3>
+            <p class="description">未在配置目录检测到 GGUF 翻译模型，可一键下载轻量级 1.25bit 极限量化版模型（约 462MB）。</p>
+            <div class="downloader-controls">
+              <button id="btn-start-download" class="btn btn-primary">🌐 一键下载模型</button>
+            </div>
+            <div class="download-progress-container" id="download-progress-box" style="display: none;">
+              <div class="progress-info">
+                <span id="download-status-label">正在连接...</span>
+                <span id="download-speed">0.0 MB/s</span>
+              </div>
+              <div class="progress-bar-wrapper">
+                <div class="progress-bar-fill" id="download-progress-bar" style="width: 0%;"></div>
+              </div>
+              <div class="progress-sub-info">
+                <span id="download-bytes-info">0 MB / 0 MB</span>
+                <span id="download-percent">0%</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Configuration Form -->
+          <div class="settings-card">
+            <h3>核心参数配置</h3>
+            <form id="settings-form">
+              <!-- Model Folder Picker -->
+              <div class="form-group">
+                <label>模型存储目录：</label>
+                <div class="input-with-button">
+                  <input type="text" id="cfg-model-dir" readonly placeholder="选择模型存放文件夹..." />
+                  <button type="button" id="btn-browse-dir" class="btn">选择文件夹</button>
+                </div>
+              </div>
+
+              <!-- Port Configuration -->
+              <div class="form-group row-fields">
+                <div class="field-item">
+                  <label>端口模式：</label>
+                  <select id="cfg-port-mode" class="custom-select">
+                    <option value="random">随机闲置端口 (推荐)</option>
+                    <option value="fixed">固定端口</option>
+                  </select>
+                </div>
+                <div class="field-item" id="fixed-port-box" style="display: none;">
+                  <label>端口号：</label>
+                  <input type="number" id="cfg-port" min="1024" max="65535" value="8080" />
+                </div>
+              </div>
+
+              <!-- Networking -->
+              <div class="form-group">
+                <label class="checkbox-container">
+                  <input type="checkbox" id="cfg-allow-external" />
+                  <span class="checkmark"></span>
+                  允许局域网外部连接 (对外提供 OpenAI API 接口)
+                </label>
+              </div>
+
+              <!-- CPU / Context Config -->
+              <div class="form-group row-fields">
+                <div class="field-item">
+                  <label>推理线程数 (Threads)：</label>
+                  <input type="number" id="cfg-threads" min="1" max="64" />
+                </div>
+                <div class="field-item">
+                  <label>最大上下文长度 (Context)：</label>
+                  <select id="cfg-context-size" class="custom-select">
+                    <option value="1024">1024 (约 500-700 中文字)</option>
+                    <option value="2048" selected>2048 (约 1000-1400 中文字)</option>
+                    <option value="4096">4096 (约 2000-2800 中文字)</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Prompt Template -->
+              <div class="form-group">
+                <label>翻译系统提示词模版 (Prompt Template)：</label>
+                <textarea id="cfg-prompt-template" rows="5"
+                  placeholder="自定义系统提示词，支持 {target_lang} 和 {source_text} 占位符..."></textarea>
+                <span class="field-help">模版中必须包含 <code>{target_lang}</code> 和
+                  <code>{source_text}</code>，翻译时会自动替换。</span>
+              </div>
+
+              <div class="form-actions">
+                <button type="submit" class="btn btn-primary">💾 保存配置</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <!-- Tab 3: Prompts -->
+      <section id="tab-prompts" class="tab-content">
+        <div class="settings-container">
+          <div class="settings-card" style="margin-bottom: 28px;">
+            <h3>官方推荐翻译指令</h3>
+            <p class="description">以下是 Hy-MT2 推荐的各种翻译场景提示词示例（中英对照）。支持一键复制，您可以直接粘贴到“核心参数配置”中的“系统提示词模版”里，或者作为本地 API 调用的
+              System Prompt 参考。注意在模板替换中，语言占位符 <code>{target_lang}</code> 会被解析为完整的语言名称。</p>
+          </div>
+
+          <!-- Default Card -->
+          <div class="settings-card" style="margin-bottom: 28px;">
+            <div class="prompt-card-header">
+              <h4>默认翻译 (Default)</h4>
+              <span class="status-badge ok">推荐</span>
+            </div>
+            <p class="description" style="margin-bottom: 12px; font-size: 13px;">
+              最通用、基础的翻译指令。只输出最终译文，不附带任何多余的解释、前言或总结，适合自动化接口与翻译后台。</p>
+            <div class="prompt-grid">
+              <div class="prompt-col">
+                <div class="prompt-col-header">
+                  <span>中文提示 (Chinese)</span>
+                  <button class="btn btn-xs btn-copy-prompt"
+                    data-prompt="将以下文本翻译为 {target_lang}，注意只需要输出翻译后的结果，不要额外解释：&#10;&#10;{source_text}">复制</button>
+                </div>
+                <pre>将以下文本翻译为 {target_lang}，注意只需要输出翻译后的结果，不要额外解释：
+
+{source_text}</pre>
+              </div>
+              <div class="prompt-col">
+                <div class="prompt-col-header">
+                  <span>英文提示 (English)</span>
+                  <button class="btn btn-xs btn-copy-prompt"
+                    data-prompt="Translate the following text into {target_lang}. Note that you should only output the translated result without any additional explanation:&#10;&#10;{source_text}">复制</button>
+                </div>
+                <pre>Translate the following text into {target_lang}. Note that you should only output the translated result without any additional explanation:
+
+{source_text}</pre>
+              </div>
+            </div>
+          </div>
+
+          <!-- Terminology Card -->
+          <div class="settings-card" style="margin-bottom: 28px;">
+            <div class="prompt-card-header">
+              <h4>术语控制 (Terminology)</h4>
+              <span class="status-badge loading">特化</span>
+            </div>
+            <p class="description" style="margin-bottom: 12px; font-size: 13px;">
+              包含特定术语对照的精准翻译。可以在提示词中定义多组词汇映射，强迫模型按照给定的译名进行翻译。</p>
+            <div class="prompt-grid">
+              <div class="prompt-col">
+                <div class="prompt-col-header">
+                  <span>中文提示 (Chinese)</span>
+                  <button class="btn btn-xs btn-copy-prompt"
+                    data-prompt="参考下面的翻译：&#10;{text} 翻译成 {text}&#10;{text} 翻译成 {text}&#10;{text} 翻译成 {text}&#10;将以下文本翻译为 {target_lang}，注意只需要输出翻译后的结果，不要额外解释：&#10;&#10;{source_text}">复制</button>
+                </div>
+                <pre>参考下面的翻译：
+{text} 翻译成 {text}
+{text} 翻译成 {text}
+{text} 翻译成 {text}
+将以下文本翻译为 {target_lang}，注意只需要输出翻译后的结果，不要额外解释：
+
+{source_text}</pre>
+              </div>
+              <div class="prompt-col">
+                <div class="prompt-col-header">
+                  <span>英文提示 (English)</span>
+                  <button class="btn btn-xs btn-copy-prompt"
+                    data-prompt="Reference the following translations:&#10;{text} translates to {text}&#10;{text} translates to {text}&#10;{text} translates to {text}&#10;&#10;Translate the following text into {target_lang}. Note that you must ONLY output the translated result without any additional explanation:&#10;&#10;{source_text}">复制</button>
+                </div>
+                <pre>Reference the following translations:
+{text} translates to {text}
+{text} translates to {text}
+{text} translates to {text}
+
+Translate the following text into {target_lang}. Note that you must ONLY output the translated result without any additional explanation:
+
+{source_text}</pre>
+              </div>
+            </div>
+          </div>
+
+          <!-- Style Card -->
+          <div class="settings-card" style="margin-bottom: 28px;">
+            <div class="prompt-card-header">
+              <h4>风格控制 (Style)</h4>
+              <span class="status-badge loading">自定义</span>
+            </div>
+            <p class="description" style="margin-bottom: 12px; font-size: 13px;">
+              通过附加具体的风格特征（如古诗风、口语化、严谨学术等），约束模型的遣词造句习惯。</p>
+            <div class="prompt-grid">
+              <div class="prompt-col">
+                <div class="prompt-col-header">
+                  <span>中文提示 (Chinese)</span>
+                  <button class="btn btn-xs btn-copy-prompt"
+                    data-prompt="请将以下文本翻译为 {target_lang}。&#10;注意翻译的风格要严格符合【{target_style}】&#10;&#10;{source_text}">复制</button>
+                </div>
+                <pre>请将以下文本翻译为 {target_lang}。
+注意翻译的风格要严格符合【{target_style}】
+
+{source_text}</pre>
+              </div>
+              <div class="prompt-col">
+                <div class="prompt-col-header">
+                  <span>英文提示 (English)</span>
+                  <button class="btn btn-xs btn-copy-prompt"
+                    data-prompt="Please translate the following text into {target_lang}. Note that the translation style must strictly conform to [{target_style}]:&#10;&#10;{source_text}">复制</button>
+                </div>
+                <pre>Please translate the following text into {target_lang}. Note that the translation style must strictly conform to [{target_style}]:
+
+{source_text}</pre>
+              </div>
+            </div>
+          </div>
+
+          <!-- Personalization Card -->
+          <div class="settings-card" style="margin-bottom: 28px;">
+            <div class="prompt-card-header">
+              <h4>个性化偏好 (Personalization)</h4>
+              <span class="status-badge loading">多步骤</span>
+            </div>
+            <p class="description" style="margin-bottom: 12px; font-size: 13px;">
+              支持配置多条细节的用户翻译偏好（例如“不要保留过多被动语态”、“专有名词保持英文”等），满足多场景的精细翻译。</p>
+            <div class="prompt-grid">
+              <div class="prompt-col">
+                <div class="prompt-col-header">
+                  <span>中文提示 (Chinese)</span>
+                  <button class="btn btn-xs btn-copy-prompt"
+                    data-prompt="【待翻译文本】&#10;{source_text}&#10;&#10;【翻译任务】&#10;1、{user_preferences}&#10;2、{user_preferences}&#10;3、……&#10;4、将【待翻译文本】翻译为 {target_lang}。">复制</button>
+                </div>
+                <pre>【待翻译文本】
+{source_text}
+
+【翻译任务】
+1、{user_preferences}
+2、{user_preferences}
+3、……
+4、将【待翻译文本】翻译为 {target_lang}。</pre>
+              </div>
+              <div class="prompt-col">
+                <div class="prompt-col-header">
+                  <span>英文提示 (English)</span>
+                  <button class="btn btn-xs btn-copy-prompt"
+                    data-prompt="[Source Text]&#10;{source_text}&#10;&#10;[Translation Tasks]&#10;1. {user_preferences}&#10;2. {user_preferences}&#10;3. ...&#10;4. Translate the [Source Text] into {target_lang}.">复制</button>
+                </div>
+                <pre>[Source Text]
+{source_text}
+
+[Translation Tasks]
+1. {user_preferences}
+2. {user_preferences}
+3. ...
+4. Translate the [Source Text] into {target_lang}.</pre>
+              </div>
+            </div>
+          </div>
+
+          <!-- Delimiters Card -->
+          <div class="settings-card" style="margin-bottom: 28px;">
+            <div class="prompt-card-header">
+              <h4>分隔符保留 (Delimiters)</h4>
+              <span class="status-badge loading">结构化</span>
+            </div>
+            <p class="description" style="margin-bottom: 12px; font-size: 13px;">在翻译含有特殊控制性或分段性分隔符（例如 `|`, `:::`,
+              `---`）的文本时，强制要求译文在相应位置精确还原等量的分隔符。</p>
+            <div class="prompt-grid">
+              <div class="prompt-col">
+                <div class="prompt-col-header">
+                  <span>中文提示 (Chinese)</span>
+                  <button class="btn btn-xs btn-copy-prompt"
+                    data-prompt="请将以下文本准确翻译为 {target_lang}。&#10;你必须在译文中保留等量的分隔符，绝对不可遗漏、转义或翻译该符号，并注意分隔符的位置。&#10;&#10;{source_text}">复制</button>
+                </div>
+                <pre>请将以下文本准确翻译为 {target_lang}。
+你必须在译文中保留等量的分隔符，绝对不可遗漏、转义或翻译该符号，并注意分隔符的位置。
+
+{source_text}</pre>
+              </div>
+              <div class="prompt-col">
+                <div class="prompt-col-header">
+                  <span>英文提示 (English)</span>
+                  <button class="btn btn-xs btn-copy-prompt"
+                    data-prompt="Please accurately translate the following text into {target_lang}.&#10;You must retain the exact same number of delimiters in the translation. Strictly do not omit, escape, or translate these symbols, and pay close attention to their placement.&#10;&#10;{source_text}">复制</button>
+                </div>
+                <pre>Please accurately translate the following text into {target_lang}.
+You must retain the exact same number of delimiters in the translation. Strictly do not omit, escape, or translate these symbols, and pay close attention to their placement.
+
+{source_text}</pre>
+              </div>
+            </div>
+          </div>
+
+          <!-- Struct 1 Card -->
+          <div class="settings-card" style="margin-bottom: 28px;">
+            <div class="prompt-card-header">
+              <h4>结构化数据 1 (Structured Data 1)</h4>
+              <span class="status-badge loading">数据安全</span>
+            </div>
+            <p class="description" style="margin-bottom: 12px; font-size: 13px;">适合翻译 JSON, YAML, XML, HTML
+              等代码格式数据。锁定其结构和变量名，只翻译对用户可见的内容，保护关键代码标签不受损坏。</p>
+            <div class="prompt-grid">
+              <div class="prompt-col">
+                <div class="prompt-col-header">
+                  <span>中文提示 (Chinese)</span>
+                  <button class="btn btn-xs btn-copy-prompt"
+                    data-prompt="# 任务目标&#10;将下方 {source_text} 中的 {format_type} 格式数据翻译为 {target_lang}。&#10;&#10;# 严格约束&#10;1. 结构锁定：绝对保持原有的 {format_type} 数据结构、缩进和层级完全不变。&#10;2. 选择性翻译：仅翻译面向用户展示的可见文本内容。&#10;3. 禁止修改：严禁翻译或更改任何代码标签、键名 (Key)、变量占位符（如 {{var}}、${var}、%s、%d 等）或代码属性。&#10;&#10;# 数据输入&#10;{source_text}">复制</button>
+                </div>
+                <pre># 任务目标
+将下方 {source_text} 中的 {format_type} 格式数据翻译为 {target_lang}。
+
+# 严格约束
+1. 结构锁定：绝对保持原有的 {format_type} 数据结构、缩进和层级完全不变。
+2. 选择性翻译：仅翻译面向用户展示的可见文本内容。
+3. 禁止修改：严禁翻译或更改任何代码标签、键名 (Key)、变量占位符（如 {{var}}、${var}、%s、%d 等）或代码属性。
+
+# 数据输入
+{source_text}</pre>
+              </div>
+              <div class="prompt-col">
+                <div class="prompt-col-header">
+                  <span>英文提示 (English)</span>
+                  <button class="btn btn-xs btn-copy-prompt"
+                    data-prompt="### Task&#10;Translate the user-facing text within the following {format_type} data into {target_lang}.&#10;&#10;### Strict Rules&#10;1. Structure Preservation: You MUST preserve the original {format_type} data structure, nesting, hierarchy, and indentation exactly as they are.&#10;2. Selective Translation: Translate ONLY the visible, user-facing text content/values.&#10;3. Strict Non-Translation: NEVER translate or alter code tags, keys, properties, object names, or variable placeholders. Leave them exactly in their original English/code form.&#10;&#10;### Source Data&#10;{source_text}">复制</button>
+                </div>
+                <pre>### Task
+Translate the user-facing text within the following {format_type} data into {target_lang}.
+
+### Strict Rules
+1. Structure Preservation: You MUST preserve the original {format_type} data structure, nesting, hierarchy, and indentation exactly as they are.
+2. Selective Translation: Translate ONLY the visible, user-facing text content/values.
+3. Strict Non-Translation: NEVER translate or alter code tags, keys, properties, object names, or variable placeholders. Leave them exactly in their original English/code form.
+
+### Source Data
+{source_text}</pre>
+              </div>
+            </div>
+          </div>
+
+          <!-- Struct 2 Card -->
+          <div class="settings-card">
+            <div class="prompt-card-header">
+              <h4>结构化数据 2 (Structured Data 2 / Contextual)</h4>
+              <span class="status-badge loading">上下文感知</span>
+            </div>
+            <p class="description" style="margin-bottom: 12px; font-size: 13px;">
+              提供上下文背景说明（如前置对话记录、小说前情提要等），让模型掌握代词和特定背景关系，从而输出更加恰切贴合语境的译文。</p>
+            <div class="prompt-grid">
+              <div class="prompt-col">
+                <div class="prompt-col-header">
+                  <span>中文提示 (Chinese)</span>
+                  <button class="btn btn-xs btn-copy-prompt"
+                    data-prompt="【背景信息】&#10;{background_text}&#10;&#10;请结合背景信息将以下文本翻译为 {target_lang}。&#10;&#10;【待翻译文本】&#10;{source_text}">复制</button>
+                </div>
+                <pre>【背景信息】
+{background_text}
+
+请结合背景信息将以下文本翻译为 {target_lang}。
+
+【待翻译文本】
+{source_text}</pre>
+              </div>
+              <div class="prompt-col">
+                <div class="prompt-col-header">
+                  <span>英文提示 (English)</span>
+                  <button class="btn btn-xs btn-copy-prompt"
+                    data-prompt="[Background Information]&#10;{background_text}&#10;&#10;Please translate the following text into {target_lang}, taking the provided background information into consideration.&#10;&#10;[Source Text]&#10;{source_text}">复制</button>
+                </div>
+                <pre>[Background Information]
+{background_text}
+
+Please translate the following text into {target_lang}, taking the provided background information into consideration.
+
+[Source Text]
+{source_text}</pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+
 </html>

@@ -113,6 +113,7 @@ async fn start_server(app_handle: AppHandle, state: State<'_, AppState>) -> Resu
             "--parallel".to_string(),
             "2".to_string(),
             "--cont-batching".to_string(),
+            "--kv-unified".to_string(),
         ])
         .spawn()
         .map_err(|e| format!("Failed to spawn llama-server: {}", e))?;

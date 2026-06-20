@@ -8,8 +8,4 @@ services:
     ports:
       - "8080:8080"
     command: >
-      -m /models/Hy-MT2-1.8B-1.25Bit.gguf
-      -c 2048 
-      -t 8
-      --parallel 2
-      --cont-batching
+      -m /models/Hy-MT2-1.8B-1.25Bit.gguf  -c 2048   -t 8  -tb 8  --kv-unified  --host 0.0.0.0  --parallel 4  --cont-batching
