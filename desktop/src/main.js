@@ -29,20 +29,14 @@ let engineApiUrl;
 let btnCopyApi;
 let modelFileStatus;
 let btnToggleServer;
-let downloaderPanel;
-let btnStartDownload;
-let downloadProgressBox;
-let downloadStatusLabel;
-let downloadSpeed;
-let downloadProgressBar;
-let downloadBytesInfo;
-let downloadPercent;
 let sidebarStatusDot;
 let sidebarStatusText;
 
 // Settings Fields
 let cfgModelDir;
 let btnBrowseDir;
+let cfgModelSelect;
+let cfgModelWarning;
 let cfgPortMode;
 let fixedPortBox;
 let cfgPort;
@@ -59,7 +53,6 @@ window.addEventListener("DOMContentLoaded", async () => {
   setupEventListeners();
   await loadSettings();
   await checkStatus();
-  setupDownloadListener();
 });
 
 function initDOM() {
@@ -84,20 +77,14 @@ function initDOM() {
   btnCopyApi = document.querySelector("#btn-copy-api");
   modelFileStatus = document.querySelector("#model-file-status");
   btnToggleServer = document.querySelector("#btn-toggle-server");
-  downloaderPanel = document.querySelector("#downloader-panel");
-  btnStartDownload = document.querySelector("#btn-start-download");
-  downloadProgressBox = document.querySelector("#download-progress-box");
-  downloadStatusLabel = document.querySelector("#download-status-label");
-  downloadSpeed = document.querySelector("#download-speed");
-  downloadProgressBar = document.querySelector("#download-progress-bar");
-  downloadBytesInfo = document.querySelector("#download-bytes-info");
-  downloadPercent = document.querySelector("#download-percent");
   sidebarStatusDot = document.querySelector("#sidebar-status-dot");
   sidebarStatusText = document.querySelector("#sidebar-status-text");
 
   // Form Fields
   cfgModelDir = document.querySelector("#cfg-model-dir");
   btnBrowseDir = document.querySelector("#btn-browse-dir");
+  cfgModelSelect = document.querySelector("#cfg-model-select");
+  cfgModelWarning = document.querySelector("#cfg-model-warning");
   cfgPortMode = document.querySelector("#cfg-port-mode");
   fixedPortBox = document.querySelector("#fixed-port-box");
   cfgPort = document.querySelector("#cfg-port");
@@ -166,6 +153,7 @@ function setupEventListeners() {
       const selected = await invoke("select_directory");
       if (selected) {
         cfgModelDir.value = selected;
+        await loadModelList(selected); // Immediately scan new folder for GGUF models
       }
     } catch (e) {
       console.error(e);
@@ -191,20 +179,6 @@ function setupEventListeners() {
   // Toggle Server
   btnToggleServer.addEventListener("click", toggleServer);
   btnQuickToggleServer.addEventListener("click", toggleServer);
-
-  // Start Download
-  btnStartDownload.addEventListener("click", async () => {
-    try {
-      btnStartDownload.disabled = true;
-      downloadProgressBox.style.display = "block";
-      downloadStatusLabel.textContent = "启动下载器...";
-      await invoke("download_model");
-    } catch (e) {
-      console.error(e);
-      showToast("启动下载失败: " + e, true);
-      btnStartDownload.disabled = false;
-    }
-  });
 
   // Copy Prompts
   document.querySelectorAll(".btn-copy-prompt").forEach(btn => {
@@ -235,11 +209,52 @@ function switchTab(tabId) {
   activeTab = tabId;
 }
 
+// Load GGUF models dynamically from directory
+async function loadModelList(customDir = null) {
+  try {
+    const models = await invoke("list_models", { customDir });
+    
+    // Clear dropdown options
+    cfgModelSelect.innerHTML = "";
+    
+    if (models.length === 0) {
+      cfgModelWarning.style.display = "block";
+      const opt = document.createElement("option");
+      opt.value = "";
+      opt.textContent = "(无可用模型)";
+      cfgModelSelect.appendChild(opt);
+      
+      // Update local config
+      if (appConfig) {
+        appConfig.current_model = "";
+      }
+      return false;
+    } else {
+      cfgModelWarning.style.display = "none";
+      models.forEach(model => {
+        const opt = document.createElement("option");
+        opt.value = model;
+        opt.textContent = model;
+        cfgModelSelect.appendChild(opt);
+      });
+      return true;
+    }
+  } catch (e) {
+    console.error("扫描模型失败", e);
+    showToast("扫描模型失败: " + e, true);
+    return false;
+  }
+}
+
 // Load configurations from Rust AppConfig
 async function loadSettings() {
   try {
     appConfig = await invoke("get_config");
     cfgModelDir.value = appConfig.model_dir;
+    
+    // Scan GGUF models in config dir
+    const hasModels = await loadModelList(appConfig.model_dir);
+    
     cfgPortMode.value = appConfig.use_random_port ? "random" : "fixed";
     if (appConfig.use_random_port) {
       fixedPortBox.style.display = "none";
@@ -251,6 +266,11 @@ async function loadSettings() {
     cfgThreads.value = appConfig.threads;
     cfgContextSize.value = appConfig.context_size;
     cfgPromptTemplate.value = appConfig.prompt_template;
+    
+    // Set selected model if available
+    if (hasModels && appConfig.current_model) {
+      cfgModelSelect.value = appConfig.current_model;
+    }
   } catch (e) {
     console.error("加载设置失败", e);
     showToast("加载设置失败", true);
@@ -260,10 +280,14 @@ async function loadSettings() {
 // Save settings to Rust config.json
 async function saveSettings() {
   try {
+    const newModel = cfgModelSelect.value;
+    const modelChanged = appConfig && appConfig.current_model !== newModel;
+
     const config = {
       port: parseInt(cfgPort.value, 10) || 8080,
       use_random_port: cfgPortMode.value === "random",
       model_dir: cfgModelDir.value,
+      current_model: newModel,
       threads: parseInt(cfgThreads.value, 10) || 4,
       context_size: parseInt(cfgContextSize.value, 10) || 2048,
       allow_external: cfgAllowExternal.checked,
@@ -273,7 +297,17 @@ async function saveSettings() {
     await invoke("set_config", { config });
     appConfig = config;
     showToast("配置保存成功！");
-    await checkStatus(); // Recheck since path might have changed
+    
+    await checkStatus();
+    
+    // Auto-restart if model changed while engine running
+    if (modelChanged && isServerRunning) {
+      showToast("检测到模型变更，正在重启翻译引擎...");
+      await invoke("stop_server");
+      const port = await invoke("start_server");
+      showToast(`引擎重启成功，已加载新模型！运行端口: ${port}`);
+      await checkStatus();
+    }
   } catch (e) {
     console.error("保存设置失败", e);
     showToast("保存设置失败: " + e, true);
@@ -286,15 +320,17 @@ async function checkStatus() {
     // 1. Check Model GGUF File Status
     const modelExists = await invoke("check_model_status");
     if (modelExists) {
-      modelFileStatus.textContent = "已检测到模型 (Ready)";
+      modelFileStatus.textContent = `已就绪 (${appConfig ? appConfig.current_model : 'Ready'})`;
       modelFileStatus.className = "status-badge ok";
-      downloaderPanel.style.display = "none";
       btnToggleServer.disabled = false;
       btnQuickToggleServer.disabled = false;
     } else {
-      modelFileStatus.textContent = "未检测到模型 (GGUF 缺失)";
+      if (appConfig && appConfig.current_model) {
+        modelFileStatus.textContent = `模型丢失 (${appConfig.current_model})`;
+      } else {
+        modelFileStatus.textContent = "未选择模型";
+      }
       modelFileStatus.className = "status-badge error";
-      downloaderPanel.style.display = "block";
       btnToggleServer.disabled = true;
       btnQuickToggleServer.disabled = true;
     }
@@ -360,45 +396,6 @@ async function toggleServer() {
     btnToggleServer.disabled = false;
     btnQuickToggleServer.disabled = false;
   }
-}
-
-// Setup background model downloader listener
-function setupDownloadListener() {
-  listen("download-progress", (event) => {
-    const { percentage, speed, downloaded_bytes, total_bytes, finished, error } = event.payload;
-
-    if (error) {
-      downloadStatusLabel.textContent = "下载失败";
-      downloadSpeed.textContent = "0.0 MB/s";
-      showToast("模型下载失败: " + error, true);
-      btnStartDownload.disabled = false;
-      return;
-    }
-
-    if (finished) {
-      downloadStatusLabel.textContent = "下载完成，正在加载模型...";
-      downloadPercent.textContent = "100%";
-      downloadProgressBar.style.style = "width: 100%";
-      showToast("模型下载完成！");
-      btnStartDownload.disabled = false;
-      
-      // Delay status recheck to let Rust rename the file
-      setTimeout(async () => {
-        await checkStatus();
-      }, 1000);
-      return;
-    }
-
-    // Update downloading panel UI
-    downloadStatusLabel.textContent = "正在下载模型权重文件...";
-    downloadPercent.textContent = `${percentage.toFixed(1)}%`;
-    downloadProgressBar.style.width = `${percentage}%`;
-    downloadSpeed.textContent = `${speed.toFixed(1)} MB/s`;
-
-    const downloadedMB = (downloaded_bytes / 1024 / 1024).toFixed(1);
-    const totalMB = (total_bytes / 1024 / 1024).toFixed(1);
-    downloadBytesInfo.textContent = `${downloadedMB} MB / ${totalMB} MB`;
-  });
 }
 
 // Stream Translation (Call completions API)

@@ -153,28 +153,6 @@
             </div>
           </div>
 
-          <!-- Downloader Card (Only shown when model is missing) -->
-          <div class="settings-card downloader-card" id="downloader-panel" style="display: none;">
-            <h3>模型下载</h3>
-            <p class="description">未在配置目录检测到 GGUF 翻译模型，可一键下载轻量级 1.25bit 极限量化版模型（约 462MB）。</p>
-            <div class="downloader-controls">
-              <button id="btn-start-download" class="btn btn-primary">🌐 一键下载模型</button>
-            </div>
-            <div class="download-progress-container" id="download-progress-box" style="display: none;">
-              <div class="progress-info">
-                <span id="download-status-label">正在连接...</span>
-                <span id="download-speed">0.0 MB/s</span>
-              </div>
-              <div class="progress-bar-wrapper">
-                <div class="progress-bar-fill" id="download-progress-bar" style="width: 0%;"></div>
-              </div>
-              <div class="progress-sub-info">
-                <span id="download-bytes-info">0 MB / 0 MB</span>
-                <span id="download-percent">0%</span>
-              </div>
-            </div>
-          </div>
-
           <!-- Configuration Form -->
           <div class="settings-card">
             <h3>核心参数配置</h3>
@@ -186,6 +164,15 @@
                   <input type="text" id="cfg-model-dir" readonly placeholder="选择模型存放文件夹..." />
                   <button type="button" id="btn-browse-dir" class="btn">选择文件夹</button>
                 </div>
+              </div>
+
+              <!-- Model File Selection -->
+              <div class="form-group">
+                <label>当前运行模型：</label>
+                <select id="cfg-model-select" class="custom-select" style="width: 100%;">
+                  <!-- Dynamically populated via JS -->
+                </select>
+                <span id="cfg-model-warning" class="field-help" style="color: var(--color-error); display: none;">该目录下未检测到任何 .gguf 模型文件，请将您的模型放入该目录，或选择其他文件夹！</span>
               </div>
 
               <!-- Port Configuration -->

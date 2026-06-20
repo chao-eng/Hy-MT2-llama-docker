@@ -3,29 +3,16 @@ mod config;
 use config::AppConfig;
 use serde::Serialize;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::Mutex;
-use std::time::Instant;
-use tauri::{AppHandle, Emitter, Manager, State};
+use tauri::{AppHandle, Manager, State};
 use tauri_plugin_shell::ShellExt;
 use tauri_plugin_shell::process::{CommandChild, CommandEvent};
 use tauri_plugin_dialog::DialogExt;
-use futures_util::StreamExt;
 
 struct AppState {
     child_process: Mutex<Option<CommandChild>>,
     active_port: Mutex<Option<u16>>,
-    downloading: Mutex<bool>,
-}
-
-#[derive(Serialize, Clone)]
-struct DownloadProgress {
-    percentage: f64,
-    speed: f64, // MB/s
-    downloaded_bytes: u64,
-    total_bytes: u64,
-    finished: bool,
-    error: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -47,7 +34,10 @@ fn set_config(app_handle: AppHandle, config: AppConfig) -> Result<(), String> {
 #[tauri::command]
 fn check_model_status(app_handle: AppHandle) -> bool {
     let config = config::load_config(&app_handle);
-    let model_path = Path::new(&config.model_dir).join("Hy-MT2-1.8B-1.25Bit.gguf");
+    if config.current_model.is_empty() {
+        return false;
+    }
+    let model_path = Path::new(&config.model_dir).join(&config.current_model);
     model_path.exists()
 }
 
@@ -86,9 +76,12 @@ async fn start_server(app_handle: AppHandle, state: State<'_, AppState>) -> Resu
     };
 
     // 4. Ensure model file exists
-    let model_path = Path::new(&config.model_dir).join("Hy-MT2-1.8B-1.25Bit.gguf");
+    if config.current_model.is_empty() {
+        return Err("No model selected. Please select a model in settings.".to_string());
+    }
+    let model_path = Path::new(&config.model_dir).join(&config.current_model);
     if !model_path.exists() {
-        return Err("Model file not found. Please download the model first.".to_string());
+        return Err(format!("Model file '{}' not found in models directory.", config.current_model));
     }
 
     // 5. Configure host
@@ -155,118 +148,33 @@ async fn stop_server(state: State<'_, AppState>) -> Result<(), String> {
 }
 
 #[tauri::command]
-async fn download_model(app_handle: AppHandle, state: State<'_, AppState>) -> Result<(), String> {
-    let mut downloading_guard = state.downloading.lock().map_err(|e| e.to_string())?;
-    if *downloading_guard {
-        return Err("Download already in progress".to_string());
+fn list_models(app_handle: AppHandle, custom_dir: Option<String>) -> Result<Vec<String>, String> {
+    let dir_str = match custom_dir {
+        Some(d) => d,
+        None => {
+            let config = config::load_config(&app_handle);
+            config.model_dir
+        }
+    };
+    let dir = Path::new(&dir_str);
+    if !dir.exists() {
+        return Ok(Vec::new());
     }
-    *downloading_guard = true;
-
-    let config = config::load_config(&app_handle);
-    let model_dir = PathBuf::from(&config.model_dir);
-    let _ = fs::create_dir_all(&model_dir);
-    let target_path = model_dir.join("Hy-MT2-1.8B-1.25Bit.gguf");
-    let tmp_path = model_dir.join("Hy-MT2-1.8B-1.25Bit.gguf.tmp");
-
-    let app_clone = app_handle.clone();
-
-    tokio::spawn(async move {
-        let result = do_download(&app_clone, &tmp_path, &target_path).await;
-        
-        let state_clone = app_clone.state::<AppState>();
-        let mut downloading_guard = state_clone.downloading.lock().unwrap();
-        *downloading_guard = false;
-
-        let payload = match result {
-            Ok(_) => DownloadProgress {
-                percentage: 100.0,
-                speed: 0.0,
-                downloaded_bytes: 0,
-                total_bytes: 0,
-                finished: true,
-                error: None,
-            },
-            Err(err) => DownloadProgress {
-                percentage: 0.0,
-                speed: 0.0,
-                downloaded_bytes: 0,
-                total_bytes: 0,
-                finished: false,
-                error: Some(err),
-            },
-        };
-        let _ = app_clone.emit("download-progress", payload);
-    });
-
-    Ok(())
-}
-
-async fn do_download(
-    app_handle: &AppHandle,
-    tmp_path: &PathBuf,
-    target_path: &PathBuf,
-) -> Result<(), String> {
-    let client = reqwest::Client::new();
-    let url = "https://modelscope.cn/api/v1/models/Tencent-Hunyuan/Hy-MT2-1.8B-1.25Bit-GGUF/repo?op=view&path=Hy-MT2-1.8B-1.25Bit.gguf";
-    
-    let res = client.get(url)
-        .send()
-        .await
-        .map_err(|e| format!("Failed to send request: {}", e))?;
-
-    if !res.status().is_success() {
-        return Err(format!("Download failed with status code: {}", res.status()));
-    }
-
-    let total_size = res.content_length().unwrap_or(0);
-    let mut file = fs::File::create(tmp_path)
-        .map_err(|e| format!("Failed to create temp file: {}", e))?;
-
-    let mut stream = res.bytes_stream();
-    let mut downloaded: u64 = 0;
-    let mut last_emit = Instant::now();
-    let start_time = Instant::now();
-
-    while let Some(item) = stream.next().await {
-        let chunk = item.map_err(|e| format!("Error while downloading chunk: {}", e))?;
-        use std::io::Write;
-        file.write_all(&chunk)
-            .map_err(|e| format!("Failed to write chunk: {}", e))?;
-        
-        downloaded += chunk.len() as u64;
-
-        if last_emit.elapsed().as_millis() >= 400 {
-            let percentage = if total_size > 0 {
-                (downloaded as f64 / total_size as f64) * 100.0
-            } else {
-                0.0
-            };
-            
-            let elapsed_secs = start_time.elapsed().as_secs_f64();
-            let speed = if elapsed_secs > 0.0 {
-                (downloaded as f64 / 1024.0 / 1024.0) / elapsed_secs
-            } else {
-                0.0
-            };
-
-            let payload = DownloadProgress {
-                percentage,
-                speed,
-                downloaded_bytes: downloaded,
-                total_bytes: total_size,
-                finished: false,
-                error: None,
-            };
-            
-            let _ = app_handle.emit("download-progress", payload);
-            last_emit = Instant::now();
+    let mut models = Vec::new();
+    if let Ok(entries) = fs::read_dir(dir) {
+        for entry in entries.flatten() {
+            if let Ok(file_type) = entry.file_type() {
+                if file_type.is_file() {
+                    let file_name = entry.file_name().to_string_lossy().to_string();
+                    if file_name.ends_with(".gguf") {
+                        models.push(file_name);
+                    }
+                }
+            }
         }
     }
-
-    fs::rename(tmp_path, target_path)
-        .map_err(|e| format!("Failed to finalize model file: {}", e))?;
-
-    Ok(())
+    models.sort();
+    Ok(models)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -278,7 +186,6 @@ pub fn run() {
         .manage(AppState {
             child_process: Mutex::new(None),
             active_port: Mutex::new(None),
-            downloading: Mutex::new(false),
         })
         .invoke_handler(tauri::generate_handler![
             get_config,
@@ -288,7 +195,7 @@ pub fn run() {
             check_server_status,
             start_server,
             stop_server,
-            download_model
+            list_models
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
