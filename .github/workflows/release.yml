@@ -42,6 +42,10 @@ jobs:
         run: npm install
         working-directory: desktop
 
+      - name: Make macOS sidecar executable
+        if: matrix.os == 'macos-latest'
+        run: chmod +x desktop/src-tauri/binaries/llama-server-aarch64-apple-darwin
+
       - name: Build and Package Tauri App
         uses: tauri-apps/tauri-action@v0
         env:
