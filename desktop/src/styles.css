@@ -332,6 +332,7 @@ body {
 .playground-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
+  grid-template-rows: minmax(0, 1fr);
   gap: 28px;
   flex-grow: 1;
   min-height: 400px;
@@ -346,6 +347,7 @@ body {
   backdrop-filter: blur(20px);
   transition: var(--transition-smooth);
   opacity: 0;
+  min-height: 0;
 }
 
 .source-card {
@@ -420,6 +422,7 @@ body {
   font-size: 15px;
   line-height: 1.7;
   white-space: pre-wrap;
+  min-height: 0;
 }
 
 .output-placeholder {

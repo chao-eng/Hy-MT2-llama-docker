@@ -472,6 +472,7 @@ async function doTranslate() {
             if (content) {
               outputText += content;
               targetOutput.textContent = outputText;
+              targetOutput.scrollTop = targetOutput.scrollHeight;
               tokenCount++;
 
               const elapsed = (performance.now() - startTime) / 1000;
