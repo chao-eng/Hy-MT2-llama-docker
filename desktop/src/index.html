@@ -120,6 +120,54 @@
           <div class="action-bar">
             <button id="btn-translate" class="btn btn-primary btn-large">💬 立即翻译</button>
           </div>
+
+          <!-- Last Request Log Card -->
+          <div class="playground-card log-card" id="last-request-log-container" style="display: none;">
+            <div class="card-header">
+              <h3>上一次请求日志</h3>
+              <button id="btn-toggle-log" class="btn btn-icon"
+                style="font-size: 12px; padding: 4px 8px; border: 1px solid var(--border-color); border-radius: 6px; display: flex; align-items: center; gap: 6px;"
+                title="折叠/展开">
+                <span id="btn-toggle-log-text">展开</span>
+                <svg class="chevron-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); pointer-events: none;"><polyline points="6 9 12 15 18 9"></polyline></svg>
+              </button>
+            </div>
+            <div id="log-card-body" class="log-card-body" style="display: none;">
+              <div class="log-meta-grid">
+                <div class="log-meta-item">
+                  <span class="label">运行模型</span>
+                  <div id="log-meta-model" class="log-meta-value accent">--</div>
+                </div>
+                <div class="log-meta-item">
+                  <span class="label">目标语言</span>
+                  <div id="log-meta-lang" class="log-meta-value">--</div>
+                </div>
+                <div class="log-meta-item">
+                  <span class="label">耗时</span>
+                  <div id="log-meta-duration" class="log-meta-value">--</div>
+                </div>
+                <div class="log-meta-item">
+                  <span class="label">Token 数量</span>
+                  <div id="log-meta-tokens" class="log-meta-value">--</div>
+                </div>
+                <div class="log-meta-item">
+                  <span class="label">生成速度</span>
+                  <div id="log-meta-speed" class="log-meta-value">--</div>
+                </div>
+              </div>
+
+              <div class="log-details">
+                <div class="log-detail-section">
+                  <span class="label">完整提示词 (Prompt)</span>
+                  <pre id="log-detail-prompt"></pre>
+                </div>
+                <div class="log-detail-section">
+                  <span class="label">完整响应内容 (Response)</span>
+                  <pre id="log-detail-response"></pre>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -172,7 +220,8 @@
                 <select id="cfg-model-select" class="custom-select" style="width: 100%;">
                   <!-- Dynamically populated via JS -->
                 </select>
-                <span id="cfg-model-warning" class="field-help" style="color: var(--color-error); display: none;">该目录下未检测到任何 .gguf 模型文件，请将您的模型放入该目录，或选择其他文件夹！</span>
+                <span id="cfg-model-warning" class="field-help"
+                  style="color: var(--color-error); display: none;">该目录下未检测到任何 .gguf 模型文件，请将您的模型放入该目录，或选择其他文件夹！</span>
               </div>
 
               <!-- Port Configuration -->

@@ -46,6 +46,18 @@ let cfgContextSize;
 let cfgPromptTemplate;
 let settingsForm;
 
+// Log UI Elements
+let logContainer;
+let btnToggleLog;
+let logCardBody;
+let logMetaModel;
+let logMetaLang;
+let logMetaDuration;
+let logMetaTokens;
+let logMetaSpeed;
+let logDetailPrompt;
+let logDetailResponse;
+
 // Initialize
 window.addEventListener("DOMContentLoaded", async () => {
   initDOM();
@@ -93,6 +105,18 @@ function initDOM() {
   cfgContextSize = document.querySelector("#cfg-context-size");
   cfgPromptTemplate = document.querySelector("#cfg-prompt-template");
   settingsForm = document.querySelector("#settings-form");
+
+  // Log UI Cache
+  logContainer = document.querySelector("#last-request-log-container");
+  btnToggleLog = document.querySelector("#btn-toggle-log");
+  logCardBody = document.querySelector("#log-card-body");
+  logMetaModel = document.querySelector("#log-meta-model");
+  logMetaLang = document.querySelector("#log-meta-lang");
+  logMetaDuration = document.querySelector("#log-meta-duration");
+  logMetaTokens = document.querySelector("#log-meta-tokens");
+  logMetaSpeed = document.querySelector("#log-meta-speed");
+  logDetailPrompt = document.querySelector("#log-detail-prompt");
+  logDetailResponse = document.querySelector("#log-detail-response");
 }
 
 function initTheme() {
@@ -146,6 +170,22 @@ function setupEventListeners() {
   });
 
   btnTranslate.addEventListener("click", doTranslate);
+
+  // Toggle last request log visibility
+  btnToggleLog.addEventListener("click", () => {
+    const isHidden = logCardBody.style.display === "none";
+    const logTextSpan = document.querySelector("#btn-toggle-log-text");
+    const svgIcon = btnToggleLog.querySelector(".chevron-icon");
+    if (isHidden) {
+      logCardBody.style.display = "block";
+      if (logTextSpan) logTextSpan.textContent = "收起";
+      if (svgIcon) svgIcon.style.transform = "rotate(180deg)";
+    } else {
+      logCardBody.style.display = "none";
+      if (logTextSpan) logTextSpan.textContent = "展开";
+      if (svgIcon) svgIcon.style.transform = "rotate(0deg)";
+    }
+  });
 
   // Folder Pick Dialog
   btnBrowseDir.addEventListener("click", async () => {
@@ -213,17 +253,17 @@ function switchTab(tabId) {
 async function loadModelList(customDir = null) {
   try {
     const models = await invoke("list_models", { customDir });
-    
+
     // Clear dropdown options
     cfgModelSelect.innerHTML = "";
-    
+
     if (models.length === 0) {
       cfgModelWarning.style.display = "block";
       const opt = document.createElement("option");
       opt.value = "";
       opt.textContent = "(无可用模型)";
       cfgModelSelect.appendChild(opt);
-      
+
       // Update local config
       if (appConfig) {
         appConfig.current_model = "";
@@ -251,10 +291,10 @@ async function loadSettings() {
   try {
     appConfig = await invoke("get_config");
     cfgModelDir.value = appConfig.model_dir;
-    
+
     // Scan GGUF models in config dir
     const hasModels = await loadModelList(appConfig.model_dir);
-    
+
     cfgPortMode.value = appConfig.use_random_port ? "random" : "fixed";
     if (appConfig.use_random_port) {
       fixedPortBox.style.display = "none";
@@ -266,7 +306,7 @@ async function loadSettings() {
     cfgThreads.value = appConfig.threads;
     cfgContextSize.value = appConfig.context_size;
     cfgPromptTemplate.value = appConfig.prompt_template;
-    
+
     // Set selected model if available
     if (hasModels && appConfig.current_model) {
       cfgModelSelect.value = appConfig.current_model;
@@ -297,9 +337,9 @@ async function saveSettings() {
     await invoke("set_config", { config });
     appConfig = config;
     showToast("配置保存成功！");
-    
+
     await checkStatus();
-    
+
     // Auto-restart if model changed while engine running
     if (modelChanged && isServerRunning) {
       showToast("检测到模型变更，正在重启翻译引擎...");
@@ -425,6 +465,30 @@ async function doTranslate() {
     .replace("{target_lang}", targetLang)
     .replace("{source_text}", text);
 
+  // Log actual request model and prompt content
+  console.log("[Request Model]", appConfig.current_model);
+  console.log("[Request Prompt]", promptText);
+  try {
+    await invoke("log_info", {
+      tag: "ModelRequest",
+      msg: `Model: ${appConfig.current_model} | TargetLang: ${targetLang} | Prompt: "${promptText.replace(/\n/g, '\\n')}"`
+    });
+  } catch (err) {
+    console.error("Failed to log request to backend:", err);
+  }
+
+  // Update last request log UI (Request info)
+  if (logContainer) {
+    logContainer.style.display = "block";
+    logMetaModel.textContent = appConfig.current_model || "--";
+    logMetaLang.textContent = targetLang || "--";
+    logMetaDuration.textContent = "正在计算...";
+    logMetaTokens.textContent = "正在计算...";
+    logMetaSpeed.textContent = "正在计算...";
+    logDetailPrompt.textContent = promptText;
+    logDetailResponse.textContent = "流式生成中...";
+  }
+
   try {
     const response = await fetch(`http://127.0.0.1:${serverPort}/v1/chat/completions`, {
       method: 'POST',
@@ -486,13 +550,50 @@ async function doTranslate() {
       }
     }
 
+    // Log response content
+    const duration = ((performance.now() - startTime) / 1000).toFixed(2);
+    console.log("[Response Content]", outputText);
+    try {
+      await invoke("log_info", {
+        tag: "ModelResponse",
+        msg: `Model: ${appConfig.current_model} | Tokens: ${tokenCount} | Duration: ${duration}s | Output: "${outputText.replace(/\n/g, '\\n')}"`
+      });
+    } catch (err) {
+      console.error("Failed to log response to backend:", err);
+    }
+
+    // Update last request log UI (Response info)
+    if (logContainer) {
+      logMetaDuration.textContent = duration + "s";
+      logMetaTokens.textContent = tokenCount;
+      const speedVal = duration > 0 ? (tokenCount / parseFloat(duration)).toFixed(1) : "0.0";
+      logMetaSpeed.textContent = speedVal + " tokens/s";
+      logDetailResponse.textContent = outputText;
+    }
+
     if (outputText === "") {
       targetOutput.textContent = "模型返回了空译文，请确认模型加载配置。";
       targetOutput.classList.add("output-placeholder");
     }
 
   } catch (e) {
-    console.error(e);
+    console.error("[Translation Error]", e);
+    try {
+      await invoke("log_error", {
+        tag: "ModelResponseError",
+        msg: `Model: ${appConfig.current_model} | Error: ${e.message || e}`
+      });
+    } catch (err) {
+      console.error("Failed to log error to backend:", err);
+    }
+
+    // Update last request log UI (Error info)
+    if (logContainer) {
+      logMetaDuration.textContent = "失败";
+      logMetaTokens.textContent = "--";
+      logMetaSpeed.textContent = "--";
+      logDetailResponse.textContent = `错误: ${e.message || e}`;
+    }
     targetOutput.textContent = "发生错误，翻译失败: \n" + e.message;
     targetOutput.classList.add("output-placeholder");
     showToast("翻译失败: " + e.message, true);

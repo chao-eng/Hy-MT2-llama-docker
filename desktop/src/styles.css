@@ -244,7 +244,7 @@ body {
 
 .tab-content {
   display: none;
-  height: 100%;
+  min-height: 100%;
 }
 
 .tab-content.active {
@@ -256,7 +256,7 @@ body {
 .translate-container {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  min-height: 100%;
   gap: 28px;
 }
 
@@ -334,8 +334,8 @@ body {
   grid-template-columns: 1fr 1fr;
   grid-template-rows: minmax(0, 1fr);
   gap: 28px;
-  flex-grow: 1;
-  min-height: 400px;
+  height: calc(100vh - 320px);
+  min-height: 380px;
 }
 
 .playground-card {
@@ -916,3 +916,102 @@ body.light-theme .prompt-col-header {
   border-left: 3px solid var(--color-accent);
   padding-left: 10px;
 }
+
+/* Last Request Log styling */
+.log-card {
+  margin-top: 14px;
+  margin-bottom: 32px; /* 展开后底部留出充足的空白间距 */
+  flex-shrink: 0;
+  opacity: 1; /* override fade-in animation opacity if needed or let it use animation */
+  animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) 0.25s forwards;
+}
+
+.log-card-body {
+  padding: 24px;
+  border-top: 1px solid var(--border-color);
+  background-color: rgba(0, 0, 0, 0.12);
+}
+
+body.light-theme .log-card-body {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+.log-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.log-meta-item {
+  display: flex;
+  flex-direction: column;
+  background: rgba(255, 255, 255, 0.015);
+  border: 1px solid var(--border-color);
+  padding: 10px 14px;
+  border-radius: 8px;
+}
+
+body.light-theme .log-meta-item {
+  background: rgba(0, 0, 0, 0.01);
+}
+
+.log-meta-item .label {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.log-meta-value {
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: 4px;
+  color: var(--text-primary);
+}
+
+.log-meta-value.accent {
+  color: var(--color-accent-hover);
+}
+
+.log-details {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.log-detail-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.log-detail-section .label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.log-detail-section pre {
+  margin: 0;
+  padding: 14px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  font-family: monospace, Consolas, "Courier New";
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 150px;
+  overflow-y: auto;
+  color: var(--text-secondary);
+}
+
+body.light-theme .log-detail-section pre {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+#log-detail-response {
+  color: var(--text-primary);
+}
+

@@ -31,7 +31,7 @@ impl AppConfig {
             threads: cpu_cores,
             context_size: 2048,
             allow_external: false,
-            prompt_template: "Translate the following text into {target_lang}. Note that you should only output the translated result without any additional explanation:\n\n{source_text}".to_string(),
+            prompt_template: "将以下文本翻译为 {target_lang}，注意只需要输出翻译后的结果，不要额外解释：\n\n{source_text}".to_string(),
         }
     }
 }
@@ -47,7 +47,12 @@ pub fn load_config(app_handle: &tauri::AppHandle) -> AppConfig {
     let path = get_config_path(app_handle);
     if path.exists() {
         if let Ok(content) = fs::read_to_string(&path) {
-            if let Ok(config) = serde_json::from_str::<AppConfig>(&content) {
+            if let Ok(mut config) = serde_json::from_str::<AppConfig>(&content) {
+                // If it is the old English default prompt template, migrate it to the Chinese one
+                if config.prompt_template == "Translate the following text into {target_lang}. Note that you should only output the translated result without any additional explanation:\n\n{source_text}" {
+                    config.prompt_template = "将以下文本翻译为 {target_lang}，注意只需要输出翻译后的结果，不要额外解释：\n\n{source_text}".to_string();
+                    let _ = save_config(app_handle, &config);
+                }
                 return config;
             }
         }

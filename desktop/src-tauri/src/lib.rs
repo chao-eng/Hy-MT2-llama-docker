@@ -179,6 +179,16 @@ fn list_models(app_handle: AppHandle, custom_dir: Option<String>) -> Result<Vec<
     Ok(models)
 }
 
+#[tauri::command]
+fn log_info(tag: String, msg: String) {
+    println!("[INFO] [{}] {}", tag, msg);
+}
+
+#[tauri::command]
+fn log_error(tag: String, msg: String) {
+    eprintln!("[ERROR] [{}] {}", tag, msg);
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
 
@@ -198,7 +208,9 @@ pub fn run() {
             check_server_status,
             start_server,
             stop_server,
-            list_models
+            list_models,
+            log_info,
+            log_error
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
