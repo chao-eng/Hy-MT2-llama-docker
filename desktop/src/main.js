@@ -514,6 +514,8 @@ async function doTranslate() {
     const decoder = new TextDecoder("utf-8");
     let outputText = "";
     let tokenCount = 0;
+    let isDoneReceived = false;
+    let lastFinishReason = null;
     const startTime = performance.now();
 
     targetOutput.textContent = ""; // Clear placeholders
@@ -528,10 +530,20 @@ async function doTranslate() {
       for (const line of lines) {
         if (line.startsWith('data: ')) {
           const dataStr = line.slice(6).trim();
-          if (dataStr === '[DONE]') continue;
+          if (dataStr === '[DONE]') {
+            isDoneReceived = true;
+            continue;
+          }
 
           try {
             const json = JSON.parse(dataStr);
+            if (json.choices && json.choices[0]) {
+              const finishReason = json.choices[0].finish_reason;
+              if (finishReason) {
+                lastFinishReason = finishReason;
+              }
+            }
+
             const content = json.choices[0].delta.content;
             if (content) {
               outputText += content;
@@ -552,23 +564,63 @@ async function doTranslate() {
 
     // Log response content
     const duration = ((performance.now() - startTime) / 1000).toFixed(2);
-    console.log("[Response Content]", outputText);
-    try {
-      await invoke("log_info", {
-        tag: "ModelResponse",
-        msg: `Model: ${appConfig.current_model} | Tokens: ${tokenCount} | Duration: ${duration}s | Output: "${outputText.replace(/\n/g, '\\n')}"`
-      });
-    } catch (err) {
-      console.error("Failed to log response to backend:", err);
-    }
+    const isTruncated = (lastFinishReason === "length");
+    
+    if (!isDoneReceived || isTruncated) {
+      const statusText = isTruncated ? "Truncated (Length Limit)" : "Interrupted";
+      console.warn(`[Response ${statusText}]`, outputText);
+      try {
+        await invoke("log_error", {
+          tag: isTruncated ? "ModelResponseTruncated" : "ModelResponseInterrupted",
+          msg: `Model: ${appConfig.current_model} | Tokens: ${tokenCount} | Duration: ${duration}s | Status: ${statusText} | Output: "${outputText.replace(/\n/g, '\\n')}"`
+        });
+      } catch (err) {
+        console.error("Failed to log response warning to backend:", err);
+      }
 
-    // Update last request log UI (Response info)
-    if (logContainer) {
-      logMetaDuration.textContent = duration + "s";
-      logMetaTokens.textContent = tokenCount;
-      const speedVal = duration > 0 ? (tokenCount / parseFloat(duration)).toFixed(1) : "0.0";
-      logMetaSpeed.textContent = speedVal + " tokens/s";
-      logDetailResponse.textContent = outputText;
+      // Append warning to main output text
+      if (outputText) {
+        if (isTruncated) {
+          outputText += "\n\n[⚠️ 因达到最大 Token 或上下文长度限制，译文被截断。请在系统设置中将“最大上下文长度 (Context)”调大（例如 4096）并重启引擎。]";
+        } else {
+          outputText += "\n\n[⚠️ 传输中断，译文未完整生成]";
+        }
+        targetOutput.textContent = outputText;
+      }
+      
+      if (isTruncated) {
+        showToast("达到上下文长度限制，译文已被截断", true);
+      } else {
+        showToast("数据传输中断，译文生成未完成", true);
+      }
+
+      // Update last request log UI (Interrupted/Truncated info)
+      if (logContainer) {
+        logMetaDuration.textContent = duration + "s" + (isTruncated ? " (已截断)" : " (已中断)");
+        logMetaTokens.textContent = tokenCount;
+        const speedVal = duration > 0 ? (tokenCount / parseFloat(duration)).toFixed(1) : "0.0";
+        logMetaSpeed.textContent = speedVal + " tokens/s";
+        logDetailResponse.textContent = outputText;
+      }
+    } else {
+      console.log("[Response Content]", outputText);
+      try {
+        await invoke("log_info", {
+          tag: "ModelResponse",
+          msg: `Model: ${appConfig.current_model} | Tokens: ${tokenCount} | Duration: ${duration}s | Output: "${outputText.replace(/\n/g, '\\n')}"`
+        });
+      } catch (err) {
+        console.error("Failed to log response to backend:", err);
+      }
+
+      // Update last request log UI (Response info)
+      if (logContainer) {
+        logMetaDuration.textContent = duration + "s";
+        logMetaTokens.textContent = tokenCount;
+        const speedVal = duration > 0 ? (tokenCount / parseFloat(duration)).toFixed(1) : "0.0";
+        logMetaSpeed.textContent = speedVal + " tokens/s";
+        logDetailResponse.textContent = outputText;
+      }
     }
 
     if (outputText === "") {
