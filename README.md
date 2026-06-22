@@ -53,8 +53,6 @@
 
 - **1.25Bit 极限量化版本** (约 462MB)：
   - ModelScope 下载地址：[Hy-MT2-1.8B-1.25Bit-GGUF](https://modelscope.cn/models/Tencent-Hunyuan/Hy-MT2-1.8B-1.25Bit-GGUF)
-- **2Bit 极限量化版本** (约 600MB)：
-  - ModelScope 下载地址：[Hy-MT2-1.8B-2Bit-GGUF](https://modelscope.cn/models/Tencent-Hunyuan/Hy-MT2-1.8B-2Bit-GGUF)
 - **常规量化版本（如 4Bit `Q4_K_M``）** (约 1.13GB)：
   - ModelScope 下载地址：[Hy-MT2-1.8B-GGUF](https://modelscope.cn/models/Tencent-Hunyuan/Hy-MT2-1.8B-GGUF)
 - **Hugging Face 官方合集**：
